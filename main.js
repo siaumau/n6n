@@ -337,6 +337,52 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             console.warn('Create workflow button (#create-workflow-button) not found.');
         }
+
+        // Add event listener to toggle switch
+        const toggleSwitches = document.querySelectorAll('.workflow-actions .switch input');
+        toggleSwitches.forEach(switchInput => {
+            switchInput.addEventListener('change', (e) => {
+                const isChecked = e.target.checked;
+                console.log(`Switch toggled: ${isChecked}`);
+                // Add logic to handle the toggle action
+            });
+        });
+
+        // Add event listener to action button (ellipsis)
+        const actionButtons = document.querySelectorAll('.workflow-actions .action-btn');
+        actionButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent triggering other click events
+                const menu = document.createElement('div');
+                menu.className = 'action-menu';
+                menu.innerHTML = `
+                    <ul>
+                        <li class="delete-action">Delete</li>
+                    </ul>
+                `;
+                document.body.appendChild(menu);
+                const rect = button.getBoundingClientRect();
+                menu.style.position = 'absolute';
+                menu.style.left = `${rect.left}px`;
+                menu.style.top = `${rect.bottom}px`;
+
+                // Add event listener for delete action
+                menu.querySelector('.delete-action').addEventListener('click', () => {
+                    const workflowItem = button.closest('.workflow-item');
+                    if (workflowItem) {
+                        workflowItem.remove();
+                        console.log('Workflow item deleted');
+                    }
+                    menu.remove(); // Remove menu after action
+                });
+
+                // Remove menu when clicking outside
+                document.addEventListener('click', function removeMenu() {
+                    menu.remove();
+                    document.removeEventListener('click', removeMenu);
+                });
+            });
+        });
     }
 
     // --- Node Management ---
