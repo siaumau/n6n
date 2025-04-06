@@ -1,0 +1,575 @@
+/* 基本樣式重置 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+body {
+    background-color: #f8f9fa;
+    color: #333;
+    overflow: hidden;
+}
+
+/* 應用容器 */
+.app-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+}
+
+/* 側邊欄 */
+.sidebar {
+    width: 180px;
+    background-color: #fff;
+    border-right: 1px solid #e0e0e0;
+    padding: 15px 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    padding: 0 15px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    margin-bottom: 15px;
+}
+
+.logo-img {
+    width: 30px;
+    height: 30px;
+    margin-right: 10px;
+}
+
+.logo span {
+    font-weight: 600;
+    font-size: 18px;
+}
+
+nav ul {
+    list-style: none;
+}
+
+nav li {
+    padding: 10px 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    color: #666;
+    transition: background-color 0.2s;
+}
+
+nav li i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+nav li:hover {
+    background-color: #f0f0f0;
+}
+
+nav li.active {
+    color: #ff55aa;
+    font-weight: 500;
+    background-color: #f8f8f8;
+}
+
+/* 主要內容區 */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* 頂部工具欄 */
+.top-toolbar {
+    height: 60px;
+    background-color: #fff;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 15px;
+}
+
+.left-controls, .right-controls {
+    display: flex;
+    align-items: center;
+}
+
+.add-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.add-btn:hover {
+    background-color: #f0f0f0;
+}
+
+.workflow-title {
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+}
+
+.tag-btn {
+    background: none;
+    border: none;
+    color: #888;
+    margin-left: 10px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.tag-btn:hover {
+    color: #ff55aa;
+}
+
+/* 開關控制 */
+.switch-container {
+    display: flex;
+    align-items: center;
+    margin-right: 15px;
+}
+
+.switch-container span {
+    margin-right: 8px;
+    color: #666;
+    font-size: 14px;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 2px;
+    bottom: 2px;
+    background-color: white;
+    transition: .4s;
+}
+
+.slider.round {
+    border-radius: 20px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #ff55aa;
+}
+
+input:checked + .slider:before {
+    transform: translateX(20px);
+}
+
+.control-btn {
+    background: none;
+    border: 1px solid #ddd;
+    padding: 6px 12px;
+    border-radius: 4px;
+    margin-left: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.control-btn:hover {
+    background-color: #f0f0f0;
+}
+
+.control-btn i {
+    margin-right: 5px;
+}
+
+.control-btn.highlight {
+    background-color: #ff55aa;
+    color: white;
+    border-color: #ff55aa;
+}
+
+.control-btn.highlight:hover {
+    background-color: #ff3399;
+}
+
+/* 工作區工具欄 */
+.workspace-toolbar {
+    height: 40px;
+    background-color: #fff;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 15px;
+}
+
+.tabs {
+    display: flex;
+}
+
+.tab {
+    padding: 0 15px;
+    height: 40px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    position: relative;
+    font-size: 14px;
+    color: #666;
+}
+
+.tab.active {
+    color: #ff55aa;
+    font-weight: 500;
+}
+
+.tab.active:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: #ff55aa;
+}
+
+.zoom-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.zoom-btn:hover {
+    background-color: #f0f0f0;
+}
+
+/* 工作區畫布 */
+.canvas {
+    flex: 1;
+    background-color: #f8f9fa;
+    background-image:
+        linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+    position: relative;
+    overflow: auto;
+}
+
+/* 工作流節點 */
+.node-wrapper {
+    position: absolute;
+    cursor: move;
+}
+
+.node {
+    min-width: 180px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    overflow: hidden;
+}
+
+.node-header {
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+}
+
+.node-icon {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+
+.node-title {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.node-content {
+    padding: 10px;
+    font-size: 13px;
+    color: #666;
+}
+
+/* 連接點 */
+.connection-point {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background-color: #fff;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+    z-index: 10;
+}
+
+.connection-point.input {
+    top: 50%;
+    left: -6px;
+    transform: translateY(-50%);
+}
+
+.connection-point.output {
+    top: 50%;
+    right: -6px;
+    transform: translateY(-50%);
+}
+
+/* 連接線 */
+.connection-line {
+    position: absolute;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* 節點類型特定樣式 */
+.node[data-type="webhook"] .node-icon {
+    background-color: #ff7043;
+    color: white;
+}
+
+.node[data-type="mysql"] .node-icon {
+    background-color: #29b6f6;
+    color: white;
+}
+
+.node[data-type="datetime"] .node-icon {
+    background-color: #4caf50;
+    color: white;
+}
+
+/* 上下文選單 */
+.context-menu {
+    position: fixed;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    display: none;
+}
+
+.context-menu ul {
+    list-style: none;
+}
+
+.context-menu li {
+    padding: 8px 15px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.context-menu li:hover {
+    background-color: #f5f5f5;
+}
+
+/* 節點選擇器 */
+.node-selector {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    max-height: 80vh;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    display: none;
+    overflow-y: auto;
+}
+
+.selector-header {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.selector-header h3 {
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.selector-header input {
+    flex: 1;
+    margin: 0 15px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.selector-header .close-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: #888;
+}
+
+.node-categories {
+    padding: 15px;
+}
+
+.category {
+    margin-bottom: 20px;
+}
+
+.category h4 {
+    margin-bottom: 10px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #666;
+}
+
+.nodes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.nodes-grid .node {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    cursor: pointer;
+    text-align: center;
+    box-shadow: none;
+    border: 1px solid #eee;
+    transition: all 0.2s;
+}
+
+.nodes-grid .node:hover {
+    border-color: #ff55aa;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.nodes-grid .node i {
+    font-size: 24px;
+    margin-bottom: 8px;
+    color: #ff55aa;
+}
+
+.nodes-grid .node span {
+    font-size: 13px;
+}
+
+/* 自定義節點樣式 */
+.trigger-node {
+    border-left: 3px solid #ff7043;
+}
+
+.database-node {
+    border-left: 3px solid #29b6f6;
+}
+
+.utility-node {
+    border-left: 3px solid #4caf50;
+}
+
+/* 節點錯誤狀態 */
+.node.error {
+    border: 1px solid #f44336;
+}
+
+.node.error .node-header {
+    background-color: #ffebee;
+}
+
+/* 正在執行狀態 */
+.node.running .node-header {
+    background-color: #e8f5e9;
+}
+
+/* 成功狀態 */
+.node.success .node-header {
+    background-color: #e8f5e9;
+}
+
+/* 起始節點樣式 */
+.node.start-node {
+    border-left: 3px solid #ff55aa;
+}
+
+/* 反應式設計 */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 60px;
+    }
+
+    .logo span, nav li span {
+        display: none;
+    }
+
+    .workflow-title span {
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+
+.node, .node-header, .node-title, .node-content, .node-icon {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}

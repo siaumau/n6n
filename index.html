@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工作流自動化工具</title>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 側邊欄 -->
+        <div class="sidebar">
+            <div class="logo">
+                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCI+PHBhdGggZD0iTTIwIDQwYzExLjA0NiAwIDIwLTguOTU0IDIwLTIwUzMxLjA0NiAwIDIwIDBTMCA4Ljk1NCAwIDIwczguOTU0IDIwIDIwIDIweiIgZmlsbD0iI2ZmNTVhYSIvPjxwYXRoIGQ9Ik0yMCAyNWMtMi43NjMgMC01LTIuMjM4LTUtNXMyLjIzNy01IDUtNSA1IDIuMjM4IDUgNS0yLjIzNyA1LTUgNXoiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNMzAgMTVjLTIuNzYzIDAtNS0yLjIzOC01LTVzMi4yMzctNSA1LTUgNSAyLjIzOCA1IDUtMi4yMzcgNS01IDV6IiBmaWxsPSIjZmZmIi8+PHBhdGggZD0iTTEwIDE1Yy0yLjc2MyAwLTUtMi4yMzgtNS01czIuMjM3LTUgNS01IDUgMi4yMzggNSA1LTIuMjM3IDUtNSA1eiIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0zMCAzNWMtMi43NjMgMC01LTIuMjM4LTUtNXMyLjIzNy01IDUtNSA1IDIuMjM4IDUgNS0yLjIzNyA1LTUgNXoiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNMTAgMzVjLTIuNzYzIDAtNS0yLjIzOC01LTVzMi4yMzctNSA1LTUgNSAyLjIzOCA1IDUtMi4yMzcgNS01IDV6IiBmaWxsPSIjZmZmIi8+PC9zdmc+" alt="Logo" class="logo-img">
+                <span>n8n</span>
+            </div>
+            <nav>
+                <ul>
+                    <li class="active"><i class="fas fa-home"></i> Overview</li>
+                    <li><i class="fas fa-file-alt"></i> Templates</li>
+                    <li><i class="fas fa-code"></i> Variables</li>
+                    <li><i class="fas fa-question-circle"></i> Help</li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- 主要內容區 -->
+        <div class="main-content">
+            <!-- 頂部工具欄 -->
+            <div class="top-toolbar">
+                <div class="left-controls">
+                    <button class="add-btn"><i class="fas fa-plus"></i></button>
+                    <div class="workflow-title">
+                        <span>My workflow 2</span>
+                        <button class="tag-btn">+ Add tag</button>
+                    </div>
+                </div>
+                <div class="right-controls">
+                    <div class="switch-container">
+                        <span>Inactive</span>
+                        <label class="switch">
+                            <input type="checkbox">
+                            <span class="slider round"></span>
+                        </label>
+                    </div>
+                    <button class="control-btn">Share</button>
+                    <button class="control-btn highlight">Save</button>
+                    <button class="control-btn"><i class="fas fa-history"></i></button>
+                    <button class="control-btn"><i class="fas fa-ellipsis-h"></i></button>
+                    <button class="control-btn">
+                        <i class="fas fa-star"></i>
+                        <span>75,153</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 工作區工具欄 -->
+            <div class="workspace-toolbar">
+                <div class="tabs">
+                    <button class="tab active">Editor</button>
+                    <button class="tab">Executions</button>
+                </div>
+                <button class="zoom-btn"><i class="fas fa-plus"></i></button>
+            </div>
+
+            <!-- 工作區畫布 -->
+            <div class="canvas" id="workflow-canvas">
+                <!-- 節點將在這裡被動態添加 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 節點右鍵選單 -->
+    <div class="context-menu" id="node-context-menu">
+        <ul>
+            <li>Copy</li>
+            <li>Delete</li>
+            <li>Run node</li>
+            <li>Set as start node</li>
+        </ul>
+    </div>
+
+    <!-- 節點選擇對話框 -->
+    <div class="node-selector" id="node-selector">
+        <div class="selector-header">
+            <h3>Add Node</h3>
+            <input type="text" placeholder="Search nodes...">
+            <button class="close-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="node-categories">
+            <div class="category">
+                <h4>Triggers</h4>
+                <div class="nodes-grid">
+                    <div class="node" data-type="webhook">
+                        <i class="fas fa-bolt"></i>
+                        <span>Webhook</span>
+                    </div>
+                    <div class="node" data-type="schedule">
+                        <i class="fas fa-clock"></i>
+                        <span>Schedule</span>
+                    </div>
+                </div>
+            </div>
+            <div class="category">
+                <h4>Database</h4>
+                <div class="nodes-grid">
+                    <div class="node" data-type="mysql">
+                        <i class="fas fa-database"></i>
+                        <span>MySQL</span>
+                    </div>
+                    <div class="node" data-type="postgres">
+                        <i class="fas fa-database"></i>
+                        <span>Postgres</span>
+                    </div>
+                </div>
+            </div>
+            <div class="category">
+                <h4>Utilities</h4>
+                <div class="nodes-grid">
+                    <div class="node" data-type="datetime">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Date & Time</span>
+                    </div>
+                    <div class="node" data-type="function">
+                        <i class="fas fa-code"></i>
+                        <span>Function</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<script src="main.js"></script>
+
+</body>
+</html>
