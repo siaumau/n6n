@@ -40,58 +40,44 @@
             <!-- 頂部工具欄 (Top Toolbar) -->
             <div class="top-toolbar">
                 <div class="left-controls">
-                    <h1 class="page-title">概觀</h1>
-                    <p class="page-description">所有您可以存取的工作流程、憑證和執行記錄</p>
+                    <button class="add-btn"><i class="fas fa-plus"></i></button>
+                    <div class="workflow-title">
+                        <span>My workflow</span> <!-- Changed name slightly -->
+                        <button class="tag-btn">+ Add tag</button>
+                    </div>
                 </div>
                 <div class="right-controls">
-                    <button id="create-workflow-button" class="control-btn create-workflow-btn">
-                        <i class="fas fa-plus"></i>
-                        <span>建立工作流程</span>
-                        <i class="fas fa-chevron-down"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- 搜尋和篩選工具欄 -->
-            <div class="search-toolbar">
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" placeholder="搜尋工作流程...">
-                </div>
-                <div class="filter-controls">
-                    <select class="sort-select">
-                        <option value="last_updated">最後更新時間</option>
-                        <option value="name">名稱</option>
-                        <option value="created">建立時間</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- 工作流程列表 -->
-            <div class="workflows-list">
-                <!-- 工作流程項目範例 -->
-                <div class="workflow-item">
-                    <div class="workflow-info">
-                        <div class="workflow-header">
-                            <i class="fas fa-project-diagram"></i>
-                            <h3>My workflow</h3>
-                            <span class="tag">個人</span>
-                        </div>
-                        <div class="workflow-meta">
-                            <span>最後更新：3 天前</span>
-                            <span>建立於：2024/03/22</span>
-                        </div>
-                    </div>
-                    <div class="workflow-actions">
+                    <div class="switch-container">
+                        <span>Inactive</span>
                         <label class="switch">
                             <input type="checkbox">
                             <span class="slider round"></span>
                         </label>
-                        <button class="action-btn"><i class="fas fa-ellipsis-h"></i></button>
                     </div>
+                    <button class="control-btn">Share</button>
+                    <button id="save-workflow-button" class="control-btn highlight">Save</button>
+                    <button class="control-btn"><i class="fas fa-history"></i></button>
+                    <button class="control-btn"><i class="fas fa-ellipsis-h"></i></button>
+                    <button class="control-btn">
+                        <i class="fas fa-star"></i>
+                        <span>0</span> <!-- Initial stars -->
+                    </button>
                 </div>
+            </div>
 
-                <!-- 更多工作流程項目... -->
+            <!-- 工作區工具欄 (Workspace Toolbar) -->
+            <div class="workspace-toolbar">
+                <div class="tabs">
+                    <button class="tab active">Editor</button>
+                    <button class="tab">Executions</button>
+                </div>
+                <button class="zoom-btn"><i class="fas fa-search-plus"></i></button> <!-- Changed icon -->
+            </div>
+
+            <!-- 工作區畫布 (Canvas) -->
+            <div class="canvas" id="workflow-canvas">
+                <!-- Nodes will be dynamically added here -->
+                <!-- Connection lines (SVG) will be added here -->
             </div>
         </div>
     </div>
