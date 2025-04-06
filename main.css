@@ -92,17 +92,42 @@ nav li.active i {
     color: #ff55aa;
 }
 
+/* Style for sidebar buttons (Import/Export) - Restored */
+.sidebar .control-btn {
+    display: block;
+    width: calc(100% - 40px); /* Adjust width based on sidebar padding */
+    margin: 10px 20px 15px 20px;
+    padding: 10px 15px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    color: #495057;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: left;
+    font-size: 14px;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.sidebar .control-btn i {
+    margin-right: 10px;
+    width: 16px; /* Align icons */
+    text-align: center;
+}
+
+.sidebar .control-btn:hover {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+}
+
+/* Specific style for import button - Restored */
+.import-btn {
+    /* Add specific styles if needed, otherwise inherits .control-btn */
+}
+
+/* Specific style for export button - Restored */
 .export-btn {
-    margin: 20px 15px 10px 15px; /* Add margin */
-    width: calc(100% - 30px);
-    background-color: #f0f0f0;
-    border: 1px solid #ccc;
-}
-.export-btn:hover {
-     background-color: #e0e0e0;
-}
-.export-btn i {
-    margin-right: 8px;
+    /* Adjusted margin to separate from import */
+    margin-top: 0;
 }
 
 
@@ -142,7 +167,6 @@ nav li.active i {
     display: flex;
     justify-content: center;
     align-items: center;
-    /* margin-right: 15px; */ /* Using gap now */
     cursor: pointer;
     transition: all 0.2s;
     color: #555;
@@ -171,7 +195,6 @@ nav li.active i {
     background: none;
     border: none;
     color: #888;
-    /* margin-left: 10px; */ /* Using gap now */
     font-size: 12px;
     cursor: pointer;
     padding: 3px 6px;
@@ -189,7 +212,6 @@ nav li.active i {
 .switch-container {
     display: flex;
     align-items: center;
-    /* margin-right: 15px; */ /* Using gap now */
 }
 
 .switch-container span {
@@ -257,7 +279,6 @@ input:checked + .slider:before {
     border: 1px solid #ddd;
     padding: 6px 12px;
     border-radius: 4px;
-    /* margin-left: 8px; */ /* Using gap now */
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -374,7 +395,6 @@ input:checked + .slider:before {
     position: relative; /* Crucial for positioning nodes and lines */
     overflow: hidden; /* Hide anything outside */
     cursor: grab; /* Indicate grabbable background (future pan?) */
-    /* min-height: 500px; Removed, flex: 1 handles height */
 }
 .canvas:active {
     cursor: grabbing;
@@ -816,7 +836,7 @@ input:checked + .slider:before {
      background-color: #fff8fb;
 }
 
-/* Modal Styles (for Export) */
+/* Modal Styles (Common) - Restored */
 .modal {
   display: none; /* Hidden by default */
   position: fixed; /* Stay in place */
@@ -833,35 +853,249 @@ input:checked + .slider:before {
   background-color: #fefefe;
   margin: 10% auto; /* 10% from the top and centered */
   padding: 25px;
-  border: 1px solid #888;
-  width: 70%; /* Could be more or less, depending on screen size */
+  border: 1px solid #ccc; /* Restored border */
+  width: 70%;
   max-width: 800px;
   border-radius: 8px;
   box-shadow: 0 5px 15px rgba(0,0,0,0.2);
   position: relative;
 }
-.modal-content h2 {
-    margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 18px;
-    font-weight: 600;
+
+/* Wider modal for settings - Restored */
+.modal-content.large {
+    width: 80%;
+    max-width: 900px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    border: none;
 }
 
-.close-export-modal {
-  color: #aaa;
-  position: absolute;
-  top: 10px;
-  right: 15px;
-  font-size: 28px;
-  font-weight: bold;
-  line-height: 1;
+/* Close button for modals (Common) - Restored */
+.close-export-modal,
+.close-settings-modal {
+    position: absolute;
+    top: 10px;
+    right: 20px;
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
 }
 
 .close-export-modal:hover,
-.close-export-modal:focus {
-  color: black;
-  text-decoration: none;
+.close-export-modal:focus,
+.close-settings-modal:hover,
+.close-settings-modal:focus {
+    color: black;
+    text-decoration: none;
+}
+
+/* Modal Header (h2) - Restored and Merged */
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 25px;
+    font-size: 22px;
+    font-weight: 600;
+    color: #333;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 15px;
+}
+
+
+/* Settings Modal Specific Styles - Restored */
+.settings-body {
+    max-height: 65vh;
+    overflow-y: auto;
+    padding: 0 10px 10px 10px;
+    margin-bottom: 25px;
+}
+
+.settings-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f1f3f5;
+}
+
+.settings-section:last-child {
+    border-bottom: none;
+}
+
+.settings-section h4 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 17px;
+    font-weight: 500;
+    color: #495057;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    font-size: 14px;
+    color: #495057;
+}
+
+.form-group input[type="text"],
+.form-group input[type="url"],
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid #adb5bd;
+    border-radius: 6px;
+    font-size: 14px;
+    line-height: 1.5;
+    background-color: #fff;
+    background-clip: padding-box;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, background-color 0.15s ease-in-out;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.form-group input[type="text"],
+.form-group input[type="url"],
+.form-group select {
+     height: 40px;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: #6c757d;
+    opacity: 1;
+}
+
+.form-group input[type="text"]:hover:not(:disabled),
+.form-group input[type="url"]:hover:not(:disabled),
+.form-group select:hover:not(:disabled),
+.form-group textarea:hover:not(:disabled) {
+    border-color: #adb5bd;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="url"]:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    background-color: #fff;
+}
+
+.form-group select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    background-size: 16px 12px;
+    padding-right: 2.8rem;
+}
+
+.form-group select:focus {
+     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.test-btn {
+    background-color: #28a745;
+    color: white;
+    margin-right: 10px;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.test-btn:hover {
+    background-color: #218838;
+}
+
+.test-result-section {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.test-result-section h5 {
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #495057;
+}
+
+#http-test-result {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 12px 15px;
+    font-family: monospace;
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    color: #212529;
+    line-height: 1.5;
+}
+
+.modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #e9ecef;
+    text-align: right;
+    background-color: #f8f9fa;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.modal-footer .btn {
+    margin-left: 10px;
+}
+
+.primary-btn {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 5px;
   cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.primary-btn:hover {
+  background-color: #0056b3;
+  border-color: #0056b3;
+}
+
+.modal-footer .btn:not(.primary-btn) {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.modal-footer .btn:not(.primary-btn):hover {
+    background-color: #5a6268;
+}
+
+
+/* Export Modal Specific styles - Restored and Corrected */
+#export-modal .modal-content {
+    /* Inherits general .modal-content, override if needed */
+    /* Example: width: 70%; max-width: 800px; */
 }
 
 #export-textarea {
@@ -876,7 +1110,6 @@ input:checked + .slider:before {
     resize: vertical;
 }
 
-/* Buttons within the Export Modal */
 #copy-export-json,
 #download-export-json {
     padding: 8px 15px;
@@ -886,11 +1119,10 @@ input:checked + .slider:before {
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.2s;
-    font-size: 13px; /* Match font size */
-    margin-right: 8px; /* Add margin between buttons */
+    font-size: 13px;
+    margin-right: 8px;
 }
 
-/* Ensure last button doesn't have right margin */
 #download-export-json {
      margin-right: 0;
 }
@@ -898,5 +1130,21 @@ input:checked + .slider:before {
 #copy-export-json:hover,
 #download-export-json:hover {
     background-color: #e64494;
+}
+
+/* Utility class for no-select - Restored */
+.no-select {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* Make specific elements unselectable - Restored */
+.node, .node-header, .node-title, .node-content, .node-icon, .connection-point, .sidebar, .top-toolbar, .workspace-toolbar {
+    /* user-select: none; */ /* Commented out as it might interfere with text selection in nodes */
+    /* -webkit-user-select: none; */
+    /* -moz-user-select: none; */
+    /* -ms-user-select: none; */
 }
 
