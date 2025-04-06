@@ -318,6 +318,25 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             console.warn('Import button or file input not found.');
         }
+
+        // Add event listener to workflow items
+        const workflowItems = document.querySelectorAll('.workflow-item');
+        workflowItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const workflowId = item.dataset.id; // Assuming each item has a unique data-id
+                window.location.href = `editor.html?id=${workflowId}`;
+            });
+        });
+
+        // Add event listener to create workflow button
+        const createWorkflowButton = document.getElementById('create-workflow-button');
+        if (createWorkflowButton) {
+            createWorkflowButton.addEventListener('click', () => {
+                window.location.href = 'editor.html';
+            });
+        } else {
+            console.warn('Create workflow button (#create-workflow-button) not found.');
+        }
     }
 
     // --- Node Management ---
