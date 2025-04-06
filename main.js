@@ -1176,7 +1176,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // 3. Populate fields for the specific type (add more cases as needed)
             if (nodeData.type === 'http') {
                 const params = nodeData.parameters || {};
-                nodeSettingHttpUrlInput.value = params.url || '';
+                // Use jsonplaceholder as default example if no URL is set
+                nodeSettingHttpUrlInput.value = params.url || 'https://jsonplaceholder.typicode.com/posts/1';
                 nodeSettingHttpMethodSelect.value = params.method || 'GET';
                 nodeSettingHttpHeadersTextarea.value = params.headers ? JSON.stringify(params.headers, null, 2) : '';
                 nodeSettingHttpBodyTextarea.value = params.body || ''; // Assuming body is stored as string
@@ -1256,20 +1257,28 @@ document.addEventListener('DOMContentLoaded', function() {
      * Executes the HTTP request based on the settings in the modal for testing.
      */
     async function testHttpRequest() {
-        const url = nodeSettingHttpUrlInput.value.trim();
+        // Get the original target URL from the input
+        const originalTargetUrl = nodeSettingHttpUrlInput.value.trim();
         const method = nodeSettingHttpMethodSelect.value;
         const headersStr = nodeSettingHttpHeadersTextarea.value.trim();
         const body = nodeSettingHttpBodyTextarea.value; // Body is used as is (string)
 
-        httpTestResultPre.textContent = 'Testing request...'; // i18n needed
+        httpTestResultPre.textContent = 'Testing request... (via proxy)'; // i18n needed
         httpTestResultPre.style.color = '#888';
 
-        if (!url) {
+        if (!originalTargetUrl) {
             httpTestResultPre.textContent = 'Error: URL is required.'; // i18n needed
             httpTestResultPre.style.color = 'red';
             return;
         }
 
+        // Construct the URL for our backend proxy
+        // Assuming the backend runs on localhost:3000 during development
+        // In production, this might point to your deployed backend URL
+        const proxyBaseUrl = 'http://localhost:3000'; // <-- Make sure this matches where your backend runs
+        const proxyUrl = `${proxyBaseUrl}/proxy?targetUrl=${encodeURIComponent(originalTargetUrl)}`;
+
+        // Headers validation remains the same
         let headers = {};
         try {
             if (headersStr) {
@@ -1281,32 +1290,40 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // --- Important Note for Proxy --- :
+        // This simple proxy currently only supports GET requests.
+        // To support other methods (POST, PUT, etc.) and sending headers/body through the proxy,
+        // the backend proxy endpoint needs to be enhanced to:
+        // 1. Accept method, headers, body parameters (e.g., via POST request to proxy).
+        // 2. Use these parameters when making the request via axios.
+        // For now, we'll proceed with a GET request to the proxy.
+
         const requestOptions = {
-            method: method,
-            headers: headers,
+             method: 'GET', // Always GET to our proxy endpoint
+             // Headers and body are NOT sent directly to the proxy in this simple setup.
+             // The backend proxy would need to be enhanced to handle them.
         };
 
-        // Add body only for relevant methods (avoiding errors for GET/HEAD)
-        if (method !== 'GET' && method !== 'HEAD' && body) {
-            requestOptions.body = body;
-        }
 
         try {
-            const response = await fetch(url, requestOptions);
+             // Fetch from our proxy endpoint
+            const response = await fetch(proxyUrl, requestOptions);
 
             const result = {
                 status: response.status,
                 statusText: response.statusText,
                 headers: {},
-                body: await response.text() // Get body as text first
+                // Get body as text first, as the proxy should forward it
+                body: await response.text()
             };
 
-             // Extract headers
+             // Extract headers (these are headers FROM THE PROXY RESPONSE,
+             // which should ideally include relevant headers from the target)
              response.headers.forEach((value, key) => {
                  result.headers[key] = value;
              });
 
-             // Try to parse body as JSON if content-type suggests it
+            // Try to parse body as JSON if content-type suggests it (check proxy response header)
              const contentType = response.headers.get('content-type');
              if (contentType && contentType.includes('application/json') && result.body) {
                  try {
@@ -1319,36 +1336,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Display formatted result
             httpTestResultPre.textContent = JSON.stringify(result, null, 2);
-            httpTestResultPre.style.color = response.ok ? 'green' : 'orange';
+            httpTestResultPre.style.color = response.ok ? 'green' : 'orange'; // Color based on proxy response status
 
         } catch (error) {
-            console.error('HTTP Request Test Failed:', error);
-            let detailedErrorMessage = `Request Failed: ${error.message}`;
+            // This catch block now catches errors fetching FROM THE PROXY
+            console.error('Proxy Request Test Failed:', error);
+             let detailedErrorMessage = `Request Failed: ${error.message}`;
 
-            // Try to provide a more helpful message for CORS/Network errors
-            if (error instanceof TypeError && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
-                let targetHost = 'the target server';
-                try {
-                    // Use try-catch for URL parsing as it can fail for invalid URLs
-                    if (url) targetHost = new URL(url).hostname;
-                } catch (e) {
-                    console.warn("Could not parse URL for error message:", url, e);
-                    // Keep targetHost as the default
-                 }
-
-                detailedErrorMessage =
-`Request Failed: Could not retrieve response from ${targetHost}.\n\n` + // i18n needed
-`Error: ${error.message}\n\n` + // i18n needed
-`This usually indicates a network issue or a CORS security restriction imposed by your browser. ` +
-`The server at '${targetHost}' might not be configured to allow requests directly from your origin ('${window.location.origin || 'null'}').\n\n` + // i18n needed
-`To test the HTTP Request node functionality, please use a known public API endpoint that explicitly allows Cross-Origin requests (CORS), such as:\n` + // i18n needed
-`- https://jsonplaceholder.typicode.com/posts/1 (GET)
-` +
-`- https://httpbin.org/get (GET)
-` +
-`- https://httpbin.org/post (POST)\n\n` + // i18n needed
-`For more details, check the Network tab and Console in your browser's developer tools (F12).`; // i18n needed
-            }
+             // Check if it looks like a network error connecting to the PROXY
+             if (error instanceof TypeError && (error.message.includes('Failed to fetch'))) {
+                 detailedErrorMessage =
+ `Request Failed: Could not connect to the backend proxy server.\n\n` + // i18n needed
+ `Error: ${error.message}\n\n` +
+ `Please ensure the backend proxy server is running at '${proxyBaseUrl}'. ` + // i18n needed
+ `You might need to run 'npm install' and then 'npm start' in the 'backend' directory.\n\n` + // i18n needed
+ `Check the browser console (F12) and the backend server console for more details.`; // i18n needed
+             }
 
             httpTestResultPre.textContent = detailedErrorMessage;
             httpTestResultPre.style.color = 'red';

@@ -1,0 +1,13 @@
+# Ignore Node.js dependencies
+/node_modules/
+
+# Ignore backend Node.js dependencies (covered by above, but explicit)
+backend/node_modules/
+
+# Optional: Ignore common OS files
+.DS_Store
+Thumbs.db
+
+# Optional: Ignore IDE/editor directories
+.vscode/
+.idea/
