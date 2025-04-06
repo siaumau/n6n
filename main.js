@@ -34,6 +34,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const nodeSettingHttpMethodSelect = document.getElementById('node-setting-http-method');
     const nodeSettingHttpHeadersTextarea = document.getElementById('node-setting-http-headers');
     const nodeSettingHttpBodyTextarea = document.getElementById('node-setting-http-body');
+    // Function Node Elements (Added)
+    const nodeSettingFunctionCodeTextarea = document.getElementById('node-setting-function-code');
+    // IF Node Elements (Added)
+    const nodeSettingIfVariableInput = document.getElementById('node-setting-if-variable');
+    const nodeSettingIfOperatorSelect = document.getElementById('node-setting-if-operator');
+    const nodeSettingIfValueInput = document.getElementById('node-setting-if-value');
+    // Function Test Elements (Added)
+    const nodeSettingFunctionSampleInputTextarea = document.getElementById('node-setting-function-sample-input');
+    const testFunctionNodeBtn = document.getElementById('test-function-node-btn');
+    const functionTestResultPre = document.getElementById('function-test-result');
 
     // State variables
     let canvasOffset = { x: 0, y: 0 };
@@ -198,6 +208,7 @@ document.addEventListener('DOMContentLoaded', function() {
         cancelSettingsBtn.addEventListener('click', hideNodeSettingsModal);
         saveSettingsBtn.addEventListener('click', saveNodeSettings);
         testHttpRequestBtn.addEventListener('click', testHttpRequest);
+        testFunctionNodeBtn.addEventListener('click', testFunctionNode); // Added listener for function test
 
         // Hide context menu on Escape key
         document.addEventListener('keydown', (e) => {
@@ -1246,6 +1257,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 nodeSettingHttpBodyTextarea.value = params.body || ''; // Assuming body is stored as string
                  // Clear previous test result specific to HTTP
                 httpTestResultPre.textContent = '';
+            } else if (nodeData.type === 'function') {
+                const params = nodeData.parameters || {};
+                nodeSettingFunctionCodeTextarea.value = params.functionCode || '';
+            } else if (nodeData.type === 'if') {
+                const params = nodeData.parameters || {};
+                nodeSettingIfVariableInput.value = params.variablePath || '';
+                nodeSettingIfOperatorSelect.value = params.operator || '==';
+                nodeSettingIfValueInput.value = params.comparisonValue !== undefined ? String(params.comparisonValue) : ''; // Ensure value is string for input
             }
             // else if (nodeData.type === 'mysql') { ... populate mysql fields ... }
 
@@ -1302,6 +1321,23 @@ document.addEventListener('DOMContentLoaded', function() {
                      return; // Prevent saving with invalid JSON
                  }
                  nodeData.parameters.body = nodeSettingHttpBodyTextarea.value; // Keep body as string for flexibility
+            } else if (nodeData.type === 'function') {
+                nodeData.parameters.functionCode = nodeSettingFunctionCodeTextarea.value;
+            } else if (nodeData.type === 'if') {
+                nodeData.parameters.variablePath = nodeSettingIfVariableInput.value.trim();
+                nodeData.parameters.operator = nodeSettingIfOperatorSelect.value;
+                // Attempt to convert comparison value to appropriate type (basic heuristic)
+                let comparisonValue = nodeSettingIfValueInput.value;
+                if (!isNaN(comparisonValue) && comparisonValue.trim() !== '') {
+                    // If it looks like a number
+                     comparisonValue = parseFloat(comparisonValue);
+                } else if (comparisonValue.toLowerCase() === 'true') {
+                    comparisonValue = true;
+                } else if (comparisonValue.toLowerCase() === 'false') {
+                    comparisonValue = false;
+                }
+                // Store the potentially converted value
+                nodeData.parameters.comparisonValue = comparisonValue;
             }
             // else if (nodeData.type === 'mysql') { ... save mysql params ... }
         }
@@ -1418,6 +1454,57 @@ document.addEventListener('DOMContentLoaded', function() {
 
             httpTestResultPre.textContent = detailedErrorMessage;
             httpTestResultPre.style.color = 'red';
+        }
+    }
+
+    /**
+     * Executes the Function node's code with sample input data for testing.
+     */
+    function testFunctionNode() {
+        const functionCode = nodeSettingFunctionCodeTextarea.value;
+        const sampleInputStr = nodeSettingFunctionSampleInputTextarea.value.trim();
+
+        functionTestResultPre.textContent = 'Running test...'; // i18n needed
+        functionTestResultPre.style.color = '#888';
+
+        let inputData = {}; // Default to empty object if no input
+        try {
+            if (sampleInputStr) {
+                inputData = JSON.parse(sampleInputStr);
+            }
+        } catch (e) {
+            functionTestResultPre.textContent = `Error parsing Sample Input Data:\n${e.message}`; // i18n needed
+            functionTestResultPre.style.color = 'red';
+            return;
+        }
+
+        try {
+            // --- Execute the function code ---
+            // Using an Async Function constructor allows for async/await within the node code.
+            // IMPORTANT: Executing arbitrary code like this has security implications
+            // if the code source isn't trusted. In a real application, sandboxing might be needed.
+            const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+            const userFunction = new AsyncFunction('inputData', functionCode);
+
+            // Execute and wait for the result (could be a Promise)
+            Promise.resolve(userFunction(inputData))
+                .then(result => {
+                    // Display the returned result
+                    functionTestResultPre.textContent = JSON.stringify(result, null, 2);
+                    functionTestResultPre.style.color = 'green';
+                })
+                .catch(error => {
+                    // Display execution error
+                    console.error("Function Node Test Execution Error:", error);
+                    functionTestResultPre.textContent = `Execution Error:\n${error.message}\n\n(Check browser console for more details)`; // i18n needed
+                    functionTestResultPre.style.color = 'red';
+                });
+
+        } catch (e) {
+            // Catch syntax errors or other issues during function creation/execution
+            console.error("Function Node Test Setup Error:", e);
+            functionTestResultPre.textContent = `Error during function execution setup:\n${e.message}`; // i18n needed
+            functionTestResultPre.style.color = 'red';
         }
     }
 

@@ -1006,6 +1006,28 @@ input:checked + .slider:before {
     min-height: 100px;
 }
 
+/* Style for Function Node Code Textarea */
+#node-setting-function-code {
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    background-color: #2d2d2d; /* Dark background */
+    color: #cccccc; /* Light text */
+    border: 1px solid #444;
+    caret-color: #cccccc; /* Cursor color */
+    white-space: pre; /* Preserve whitespace */
+    overflow-wrap: normal; /* Prevent wrapping */
+    overflow-x: auto; /* Add horizontal scroll */
+}
+
+#node-setting-function-code::placeholder {
+    color: #666;
+}
+
+#node-setting-function-code:focus {
+    border-color: #686868;
+    box-shadow: 0 0 0 0.25rem rgba(100, 100, 100, 0.25);
+    background-color: #333333; /* Slightly lighter focus background */
+}
+
 .test-btn {
     background-color: #28a745;
     color: white;
@@ -1146,5 +1168,48 @@ input:checked + .slider:before {
     /* -webkit-user-select: none; */
     /* -moz-user-select: none; */
     /* -ms-user-select: none; */
+}
+
+/* Style for Function Test Section */
+.function-test-section {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px dashed #ccc;
+}
+
+.function-test-section h5 {
+     margin-bottom: 15px; /* Add space below test section title */
+}
+
+/* Style for Sample Input Textarea */
+#node-setting-function-sample-input {
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    color: #212529;
+    line-height: 1.5;
+}
+
+#node-setting-function-sample-input:focus {
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    background-color: #fff;
+}
+
+/* Style for Function Test Result Pre */
+#function-test-result {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    padding: 12px 15px;
+    font-family: monospace;
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    color: #212529;
+    line-height: 1.5;
 }
 

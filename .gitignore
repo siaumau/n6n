@@ -1,5 +1,5 @@
 # Ignore Node.js dependencies
-/node_modules/
+
 
 # Ignore backend Node.js dependencies (covered by above, but explicit)
 backend/node_modules/

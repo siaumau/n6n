@@ -242,6 +242,78 @@
                          </div>
                     </div>
 
+                    <!-- Function Node Settings -->
+                    <div class="settings-section type-settings function-settings" data-node-type="function" style="display: none;">
+                        <h4 data-i18n="functionNodeSettings">Function Node Settings</h4>
+                        <div class="form-group">
+                            <label for="node-setting-function-code" data-i18n="javascriptCode">JavaScript Code:</label>
+                            <textarea id="node-setting-function-code" rows="15" placeholder="// Access input data using 'inputData'
+// Return the data to pass to the next node
+// Example: return { ...inputData, processed: true };"></textarea>
+                            <p style="font-size: 12px; color: #666; margin-top: 5px;" data-i18n="functionNodeHelp">
+                                Input data is available in the 'inputData' variable (usually an object). The code should return the data object to be passed to the next node.
+                            </p>
+                        </div>
+                        <!-- Added Test Section for Function Node -->
+                        <div class="test-section function-test-section">
+                            <h5 data-i18n="testFunctionTitle">Test Function</h5>
+                            <div class="form-group">
+                                <label for="node-setting-function-sample-input" data-i18n="sampleInputData">Sample Input Data (JSON):</label>
+                                <textarea id="node-setting-function-sample-input" rows="5" placeholder='{
+  "message": "Hello from previous node!",
+  "timestamp": 1678886400000
+}'></textarea>
+                            </div>
+                            <div class="form-group">
+                                <button id="test-function-node-btn" class="btn test-btn" data-i18n="runTest">Run Test</button>
+                            </div>
+                            <div class="test-result-section">
+                                <h5 data-i18n="testResult">Test Result:</h5>
+                                <pre id="function-test-result"></pre>
+                            </div>
+                        </div>
+                        <!-- End Added Test Section -->
+                    </div>
+
+                    <!-- IF Node Settings -->
+                    <div class="settings-section type-settings if-settings" data-node-type="if" style="display: none;">
+                        <h4 data-i18n="ifNodeSettings">IF Node Settings (Basic)</h4>
+                        <p style="font-size: 12px; color: #666; margin-bottom: 15px;" data-i18n="ifNodeHelp">
+                            Define a condition to determine the output path (True/False). Currently supports basic comparison.
+                        </p>
+                         <div class="form-group">
+                            <label for="node-setting-if-variable" data-i18n="ifVariable">Input Variable Path:</label>
+                            <input type="text" id="node-setting-if-variable" placeholder="e.g., inputData.status or inputData.items[0].name">
+                            <p style="font-size: 12px; color: #666; margin-top: 5px;">Path to the value from input data to check (use dot notation).</p>
+                        </div>
+                         <div class="form-group">
+                            <label for="node-setting-if-operator" data-i18n="ifOperator">Operator:</label>
+                            <select id="node-setting-if-operator">
+                                <option value="==" data-i18n="equals">Equals (==)</option>
+                                <option value="!=" data-i18n="notEquals">Not Equals (!=)</option>
+                                <option value=">" data-i18n="greaterThan">Greater Than (>)</option>
+                                <option value="<" data-i18n="lessThan">Less Than (<)</option>
+                                <option value=">=" data-i18n="greaterThanOrEqual">Greater Than or Equal (>=)</option>
+                                <option value="<=" data-i18n="lessThanOrEqual">Less Than or Equal (<=)</option>
+                                <option value="contains" data-i18n="contains">Contains (for strings)</option>
+                                <option value="!contains" data-i18n="notContains">Does Not Contain (for strings)</option>
+                                <option value="isEmpty" data-i18n="isEmpty">Is Empty / Null / Undefined</option>
+                                <option value="isNotEmpty" data-i18n="isNotEmpty">Is Not Empty / Null / Undefined</option>
+                            </select>
+                        </div>
+                         <div class="form-group">
+                            <label for="node-setting-if-value" data-i18n="ifValue">Value to Compare:</label>
+                            <input type="text" id="node-setting-if-value" placeholder="Value to compare against (e.g., 'success', 200, true)">
+                            <p style="font-size: 12px; color: #666; margin-top: 5px;">Enter the value for comparison. For boolean checks like 'isEmpty', this field might be ignored.</p>
+                        </div>
+                    </div>
+
+                     <!-- Manual Node Settings -->
+                    <div class="settings-section type-settings manual-settings" data-node-type="manual" style="display: none;">
+                        <h4 data-i18n="manualNodeSettings">Manual Trigger Settings</h4>
+                        <p data-i18n="manualNodeHelp">This node triggers the workflow manually. No specific parameters required.</p>
+                    </div>
+
                     <!-- Add sections for other node types here -->
                     <!-- e.g., <div class="settings-section type-settings mysql-settings" data-node-type="mysql" style="display: none;">...</div> -->
 
