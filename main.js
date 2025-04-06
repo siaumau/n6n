@@ -69,19 +69,27 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function updateCanvasOffset() {
-        const rect = canvas.getBoundingClientRect();
-        canvasOffset = { x: rect.left, y: rect.top };
+        if (canvas) {
+            const rect = canvas.getBoundingClientRect();
+            canvasOffset = { x: rect.left, y: rect.top };
+        } else {
+            console.warn('Canvas element not found. Cannot update offset.');
+        }
     }
 
     // --- Canvas Event Handling ---
 
     function initCanvasEvents() {
-        canvas.addEventListener('mousedown', handleCanvasMouseDown);
-        canvas.addEventListener('mousemove', handleCanvasMouseMove);
-        canvas.addEventListener('mouseup', handleCanvasMouseUp);
-        canvas.addEventListener('contextmenu', handleCanvasContextMenu);
-        canvas.addEventListener('click', handleCanvasClick); // For hiding context menu
-        window.addEventListener('resize', updateCanvasOffset); // Recalculate offset on resize
+        if (canvas) {
+            canvas.addEventListener('mousedown', handleCanvasMouseDown);
+            canvas.addEventListener('mousemove', handleCanvasMouseMove);
+            canvas.addEventListener('mouseup', handleCanvasMouseUp);
+            canvas.addEventListener('contextmenu', handleCanvasContextMenu);
+            canvas.addEventListener('click', handleCanvasClick); // For hiding context menu
+            window.addEventListener('resize', updateCanvasOffset); // Recalculate offset on resize
+        } else {
+            console.warn('Canvas element not found. Cannot initialize canvas events.');
+        }
     }
 
     function handleCanvasMouseDown(e) {
@@ -161,54 +169,115 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function initUIEvents() {
         // Add Node Button
-        document.querySelector('.add-btn').addEventListener('click', () => {
-            showNodeSelector(null, null, true); // Center the selector
-        });
+        const addButton = document.querySelector('.add-btn');
+        if (addButton) {
+            addButton.addEventListener('click', () => {
+                showNodeSelector(null, null, true); // Center the selector
+            });
+        } else {
+            console.warn('Add button (.add-btn) not found.');
+        }
 
         // Close Node Selector
-        nodeSelector.querySelector('.close-btn').addEventListener('click', hideNodeSelector);
+        const closeBtn = nodeSelector.querySelector('.close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', hideNodeSelector);
+        } else {
+            console.warn('Close button (.close-btn) not found in node selector.');
+        }
 
         // Node Selection Items
-        document.querySelectorAll('.node-selector .node-select-item').forEach(item => {
-            item.addEventListener('click', function() {
-                const nodeType = this.dataset.type;
-                // Position new node near where selector was opened, or center if button used
-                const selectorRect = nodeSelector.getBoundingClientRect();
-                const canvasRect = canvas.getBoundingClientRect();
-                let initialX = (selectorRect.left - canvasRect.left + selectorRect.width / 2);
-                let initialY = (selectorRect.top - canvasRect.top + 50); // Slightly below
+        const nodeItems = document.querySelectorAll('.node-selector .node-select-item');
+        if (nodeItems.length > 0) {
+            nodeItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const nodeType = this.dataset.type;
+                    // Position new node near where selector was opened, or center if button used
+                    const selectorRect = nodeSelector.getBoundingClientRect();
+                    const canvasRect = canvas.getBoundingClientRect();
+                    let initialX = (selectorRect.left - canvasRect.left + selectorRect.width / 2);
+                    let initialY = (selectorRect.top - canvasRect.top + 50); // Slightly below
 
-                // If opened via Add button (centered), place in canvas center
-                 if (nodeSelector.dataset.centered === 'true') {
-                     initialX = canvas.clientWidth / 2 - 90; // Approx node width / 2
-                     initialY = canvas.clientHeight / 2 - 40; // Approx node height / 2
-                 }
+                    // If opened via Add button (centered), place in canvas center
+                    if (nodeSelector.dataset.centered === 'true') {
+                        initialX = canvas.clientWidth / 2 - 90; // Approx node width / 2
+                        initialY = canvas.clientHeight / 2 - 40; // Approx node height / 2
+                    }
 
-                // Ensure node is within canvas bounds (simple check)
-                 initialX = Math.max(0, Math.min(initialX, canvas.clientWidth - 180));
-                 initialY = Math.max(0, Math.min(initialY, canvas.clientHeight - 80));
+                    // Ensure node is within canvas bounds (simple check)
+                    initialX = Math.max(0, Math.min(initialX, canvas.clientWidth - 180));
+                    initialY = Math.max(0, Math.min(initialY, canvas.clientHeight - 80));
 
-
-                addNode(nodeType, initialX, initialY);
-                hideNodeSelector();
+                    addNode(nodeType, initialX, initialY);
+                    hideNodeSelector();
+                });
             });
-        });
+        } else {
+            console.warn('No node selection items found.');
+        }
 
         // Node Search Filter
-        nodeSearchInput.addEventListener('input', filterNodeSelector);
+        if (nodeSearchInput) {
+            nodeSearchInput.addEventListener('input', filterNodeSelector);
+        } else {
+            console.warn('Node search input (#node-search) not found.');
+        }
 
         // Export Button
-        exportButton.addEventListener('click', showExportModal);
-        closeExportModalBtn.addEventListener('click', hideExportModal);
-        copyExportJsonBtn.addEventListener('click', copyExportJsonToClipboard);
-        downloadExportJsonBtn.addEventListener('click', downloadExportJson);
+        if (exportButton) {
+            exportButton.addEventListener('click', showExportModal);
+        } else {
+            console.warn('Export button (#export-button) not found.');
+        }
+
+        if (closeExportModalBtn) {
+            closeExportModalBtn.addEventListener('click', hideExportModal);
+        } else {
+            console.warn('Close export modal button (.close-export-modal) not found.');
+        }
+
+        if (copyExportJsonBtn) {
+            copyExportJsonBtn.addEventListener('click', copyExportJsonToClipboard);
+        } else {
+            console.warn('Copy export JSON button (#copy-export-json) not found.');
+        }
+
+        if (downloadExportJsonBtn) {
+            downloadExportJsonBtn.addEventListener('click', downloadExportJson);
+        } else {
+            console.warn('Download export JSON button (#download-export-json) not found.');
+        }
 
         // Settings Modal Buttons (Added)
-        closeSettingsModalBtn.addEventListener('click', hideNodeSettingsModal);
-        cancelSettingsBtn.addEventListener('click', hideNodeSettingsModal);
-        saveSettingsBtn.addEventListener('click', saveNodeSettings);
-        testHttpRequestBtn.addEventListener('click', testHttpRequest);
-        testFunctionNodeBtn.addEventListener('click', testFunctionNode); // Added listener for function test
+        if (closeSettingsModalBtn) {
+            closeSettingsModalBtn.addEventListener('click', hideNodeSettingsModal);
+        } else {
+            console.warn('Close settings modal button (.close-settings-modal) not found.');
+        }
+
+        if (cancelSettingsBtn) {
+            cancelSettingsBtn.addEventListener('click', hideNodeSettingsModal);
+        } else {
+            console.warn('Cancel settings button (#cancel-node-settings-btn) not found.');
+        }
+
+        if (saveSettingsBtn) {
+            saveSettingsBtn.addEventListener('click', saveNodeSettings);
+        } else {
+            console.warn('Save settings button (#save-node-settings-btn) not found.');
+        }
+
+        if (testHttpRequestBtn) {
+            testHttpRequestBtn.addEventListener('click', testHttpRequest);
+        } else {
+            console.warn('Test HTTP request button (#test-http-request-btn) not found.');
+        }
+
+        if (testFunctionNodeBtn) {
+            testFunctionNodeBtn.addEventListener('click', testFunctionNode); // Added listener for function test
+        } else {
+            console.warn('Test function node button (#test-function-node-btn) not found.');
+        }
 
         // Hide context menu on Escape key
         document.addEventListener('keydown', (e) => {
@@ -220,8 +289,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-         // Prevent context menu on the custom one
-         contextMenu.addEventListener('contextmenu', e => e.preventDefault());
+        // Prevent context menu on the custom one
+        if (contextMenu) {
+            contextMenu.addEventListener('contextmenu', e => e.preventDefault());
+        } else {
+            console.warn('Context menu (#node-context-menu) not found.');
+        }
 
         // Save Button (Find the actual save button in HTML and add listener)
         // Assuming the top-right save button has id="save-workflow-button"
@@ -512,12 +585,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     /** Renders the entire workflow (nodes and connections) */
     function renderWorkflow() {
-        // Clear existing nodes and lines
-        canvas.innerHTML = '';
-        // Render nodes first
-        workflowData.nodes.forEach(renderNode);
-        // Then render connections
-        updateAllConnections(); // Use the function that draws all lines
+        if (canvas) {
+            // Clear existing nodes and lines
+            canvas.innerHTML = '';
+            // Render nodes first
+            workflowData.nodes.forEach(renderNode);
+            // Then render connections
+            updateAllConnections(); // Use the function that draws all lines
+        } else {
+            console.warn('Canvas element not found. Cannot render workflow.');
+        }
     }
 
 
