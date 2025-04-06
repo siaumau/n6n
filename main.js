@@ -18,6 +18,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const copyExportJsonBtn = document.getElementById('copy-export-json');
     const nodeSearchInput = document.getElementById('node-search');
 
+    // Node Settings Modal Elements (Added)
+    const settingsModal = document.getElementById('node-settings-modal');
+    const settingsModalContent = settingsModal.querySelector('.modal-content');
+    const closeSettingsModalBtn = settingsModal.querySelector('.close-settings-modal');
+    const nodeSettingNameInput = document.getElementById('node-setting-name');
+    const nodeSettingNotesInput = document.getElementById('node-setting-notes');
+    const typeSpecificSettingsContainer = document.getElementById('type-specific-settings');
+    const saveSettingsBtn = document.getElementById('save-node-settings-btn');
+    const cancelSettingsBtn = document.getElementById('cancel-node-settings-btn');
+    const testHttpRequestBtn = document.getElementById('test-http-request-btn');
+    const httpTestResultPre = document.getElementById('http-test-result');
+    const nodeSettingHttpUrlInput = document.getElementById('node-setting-http-url');
+    const nodeSettingHttpMethodSelect = document.getElementById('node-setting-http-method');
+    const nodeSettingHttpHeadersTextarea = document.getElementById('node-setting-http-headers');
+    const nodeSettingHttpBodyTextarea = document.getElementById('node-setting-http-body');
 
     // State variables
     let canvasOffset = { x: 0, y: 0 };
@@ -176,6 +191,12 @@ document.addEventListener('DOMContentLoaded', function() {
         closeExportModalBtn.addEventListener('click', hideExportModal);
         copyExportJsonBtn.addEventListener('click', copyExportJsonToClipboard);
 
+        // Settings Modal Buttons (Added)
+        closeSettingsModalBtn.addEventListener('click', hideNodeSettingsModal);
+        cancelSettingsBtn.addEventListener('click', hideNodeSettingsModal);
+        saveSettingsBtn.addEventListener('click', saveNodeSettings);
+        testHttpRequestBtn.addEventListener('click', testHttpRequest);
+
         // Hide context menu on Escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -307,13 +328,10 @@ document.addEventListener('DOMContentLoaded', function() {
              showContextMenu(e.clientX, e.clientY, nodeData.id);
          });
 
-         // Node Double-click for Settings (Placeholder)
+         // Node Double-click for Settings
          nodeElement.addEventListener('dblclick', (e) => {
              e.stopPropagation();
-             console.log(`Double-clicked node ${nodeData.id} (${nodeData.type}). Open settings modal here.`);
-             alert(`Node Settings Placeholder\n\nNode ID: ${nodeData.id}\nType: ${nodeData.type}\nName: ${nodeData.name}\n\n(Implement a real settings panel)`);
-             // Future: Call function to open a dedicated settings modal/panel
-             // openNodeSettings(nodeData.id);
+             openNodeSettings(nodeData.id);
          });
 
 
@@ -1121,15 +1139,198 @@ document.addEventListener('DOMContentLoaded', function() {
         // }
     }
 
+    // --- Settings Modal --- (Added Section)
+
+    /**
+     * Opens the settings modal for a specific node.
+     * @param {number} nodeId - The ID of the node to configure.
+     */
+    function openNodeSettings(nodeId) {
+        const nodeData = findNodeData(nodeId);
+        if (!nodeData) {
+            console.error(`Node data not found for ID: ${nodeId}`);
+            return;
+        }
+
+        // Store node ID for saving later
+        settingsModal.dataset.editingNodeId = nodeId;
+
+        // Clear previous test results
+        httpTestResultPre.textContent = '';
+
+        // --- Populate Common Fields ---
+        nodeSettingNameInput.value = nodeData.name || '';
+        nodeSettingNotesInput.value = nodeData.notes || '';
+
+        // --- Handle Type-Specific Settings ---
+        // 1. Hide all type-specific sections first
+        typeSpecificSettingsContainer.querySelectorAll('.type-settings').forEach(section => {
+            section.style.display = 'none';
+        });
+
+        // 2. Show the relevant section for the node type
+        const typeSettingsSection = typeSpecificSettingsContainer.querySelector(`.type-settings[data-node-type="${nodeData.type}"]`);
+        if (typeSettingsSection) {
+            typeSettingsSection.style.display = 'block';
+
+            // 3. Populate fields for the specific type (add more cases as needed)
+            if (nodeData.type === 'http') {
+                const params = nodeData.parameters || {};
+                nodeSettingHttpUrlInput.value = params.url || '';
+                nodeSettingHttpMethodSelect.value = params.method || 'GET';
+                nodeSettingHttpHeadersTextarea.value = params.headers ? JSON.stringify(params.headers, null, 2) : '';
+                nodeSettingHttpBodyTextarea.value = params.body || ''; // Assuming body is stored as string
+                 // Clear previous test result specific to HTTP
+                httpTestResultPre.textContent = '';
+            }
+            // else if (nodeData.type === 'mysql') { ... populate mysql fields ... }
+
+        } else {
+            console.warn(`No settings section defined for node type: ${nodeData.type}`);
+        }
+
+
+        // --- Show Modal ---
+        settingsModal.style.display = 'block';
+        // Focus the first input
+        nodeSettingNameInput.focus();
+
+        console.log(`Opened settings for node ${nodeId}`);
+    }
+
+     /** Closes the node settings modal */
+    function hideNodeSettingsModal() {
+        settingsModal.style.display = 'none';
+        settingsModal.removeAttribute('data-editing-node-id');
+        console.log("Node settings modal closed.");
+    }
+
+    /** Saves the current settings from the modal to the node data */
+    function saveNodeSettings() {
+        const nodeId = parseInt(settingsModal.dataset.editingNodeId);
+        const nodeData = findNodeData(nodeId);
+
+        if (!nodeData) {
+            console.error("Could not save settings: Node data not found.");
+            hideNodeSettingsModal();
+            return;
+        }
+
+        // --- Save Common Fields ---
+        nodeData.name = nodeSettingNameInput.value.trim() || `${nodeData.type} ${nodeId}`; // Provide default if empty
+        nodeData.notes = nodeSettingNotesInput.value.trim();
+
+        // --- Save Type-Specific Fields ---
+        const typeSettingsSection = typeSpecificSettingsContainer.querySelector(`.type-settings[data-node-type="${nodeData.type}"]:not([style*="display: none"])`);
+        if (typeSettingsSection) {
+            if (!nodeData.parameters) nodeData.parameters = {}; // Ensure parameters object exists
+
+            if (nodeData.type === 'http') {
+                 nodeData.parameters.url = nodeSettingHttpUrlInput.value.trim();
+                 nodeData.parameters.method = nodeSettingHttpMethodSelect.value;
+                 try {
+                     // Store headers as an object
+                     nodeData.parameters.headers = nodeSettingHttpHeadersTextarea.value.trim() ? JSON.parse(nodeSettingHttpHeadersTextarea.value) : {};
+                 } catch (e) {
+                     console.error("Invalid JSON in Headers:", e);
+                     alert('Error: Invalid JSON format in Headers field. Please correct it.');
+                     // Optionally, focus the field: nodeSettingHttpHeadersTextarea.focus();
+                     return; // Prevent saving with invalid JSON
+                 }
+                 nodeData.parameters.body = nodeSettingHttpBodyTextarea.value; // Keep body as string for flexibility
+            }
+            // else if (nodeData.type === 'mysql') { ... save mysql params ... }
+        }
+
+        console.log(`Settings saved for node ${nodeId}:`, nodeData);
+
+        // --- Update Node Appearance ---
+        // Re-render the node to reflect changes (e.g., name, notes)
+        renderNode(nodeData);
+
+        // --- Close Modal ---
+        hideNodeSettingsModal();
+    }
+
+    /**
+     * Executes the HTTP request based on the settings in the modal for testing.
+     */
+    async function testHttpRequest() {
+        const url = nodeSettingHttpUrlInput.value.trim();
+        const method = nodeSettingHttpMethodSelect.value;
+        const headersStr = nodeSettingHttpHeadersTextarea.value.trim();
+        const body = nodeSettingHttpBodyTextarea.value; // Body is used as is (string)
+
+        httpTestResultPre.textContent = 'Testing request...'; // i18n needed
+        httpTestResultPre.style.color = '#888';
+
+        if (!url) {
+            httpTestResultPre.textContent = 'Error: URL is required.'; // i18n needed
+            httpTestResultPre.style.color = 'red';
+            return;
+        }
+
+        let headers = {};
+        try {
+            if (headersStr) {
+                headers = JSON.parse(headersStr);
+            }
+        } catch (e) {
+            httpTestResultPre.textContent = `Error: Invalid JSON in Headers.\n${e.message}`; // i18n needed
+            httpTestResultPre.style.color = 'red';
+            return;
+        }
+
+        const requestOptions = {
+            method: method,
+            headers: headers,
+        };
+
+        // Add body only for relevant methods (avoiding errors for GET/HEAD)
+        if (method !== 'GET' && method !== 'HEAD' && body) {
+            requestOptions.body = body;
+        }
+
+        try {
+            const response = await fetch(url, requestOptions);
+
+            const result = {
+                status: response.status,
+                statusText: response.statusText,
+                headers: {},
+                body: await response.text() // Get body as text first
+            };
+
+             // Extract headers
+             response.headers.forEach((value, key) => {
+                 result.headers[key] = value;
+             });
+
+             // Try to parse body as JSON if content-type suggests it
+             const contentType = response.headers.get('content-type');
+             if (contentType && contentType.includes('application/json') && result.body) {
+                 try {
+                     result.body = JSON.parse(result.body);
+                 } catch (e) {
+                     console.warn("Response body looked like JSON but failed to parse:", e);
+                     // Keep body as text if JSON parsing fails
+                 }
+             }
+
+            // Display formatted result
+            httpTestResultPre.textContent = JSON.stringify(result, null, 2);
+            httpTestResultPre.style.color = response.ok ? 'green' : 'orange';
+
+        } catch (error) {
+            console.error('HTTP Request Test Failed:', error);
+            httpTestResultPre.textContent = `Request Failed:\n${error.message}\n\nCheck browser console and network tab for details. Possible CORS issue if testing external APIs.`; // i18n needed
+            httpTestResultPre.style.color = 'red';
+        }
+    }
+
+    // --- End Settings Modal ---
+
     // --- Start the Application ---
     initializeApp();
-
-     // Example: Add a few initial nodes for testing
-     const node1 = addNode('manual', 100, 150);
-     const node2 = addNode('set', 400, 100);
-     const node3 = addNode('if', 400, 250);
-     const node4 = addNode('http', 700, 150);
-     setAsStartNode(node1.id); // Set node 1 as the start
-
 
 }); // End DOMContentLoaded

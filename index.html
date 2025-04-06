@@ -177,6 +177,77 @@
       </div>
     </div>
 
+    <!-- Node Settings Modal -->
+    <div id="node-settings-modal" class="modal" style="display:none;">
+        <div class="modal-content large"> <!-- Add 'large' class for wider modal -->
+            <span class="close-settings-modal" data-i18n-title="close">&times;</span>
+            <h2 data-i18n="nodeSettingsTitle">Node Settings</h2>
+
+            <div class="settings-body">
+                <!-- Common Settings -->
+                <div class="settings-section">
+                    <h4 data-i18n="commonSettings">Common Settings</h4>
+                    <div class="form-group">
+                        <label for="node-setting-name" data-i18n="nodeName">Node Name:</label>
+                        <input type="text" id="node-setting-name">
+                    </div>
+                     <div class="form-group">
+                        <label for="node-setting-notes" data-i18n="nodeNotes">Notes:</label>
+                        <textarea id="node-setting-notes" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <!-- Type Specific Settings (Dynamically Shown) -->
+                <div id="type-specific-settings">
+                     <!-- HTTP Request Settings -->
+                    <div class="settings-section type-settings http-settings" data-node-type="http" style="display: none;">
+                        <h4 data-i18n="httpRequestSettings">HTTP Request Settings</h4>
+                        <div class="form-group">
+                            <label for="node-setting-http-url" data-i18n="url">URL:</label>
+                            <input type="url" id="node-setting-http-url" placeholder="https://example.com/api">
+                        </div>
+                        <div class="form-group">
+                            <label for="node-setting-http-method" data-i18n="method">Method:</label>
+                            <select id="node-setting-http-method">
+                                <option value="GET">GET</option>
+                                <option value="POST">POST</option>
+                                <option value="PUT">PUT</option>
+                                <option value="DELETE">DELETE</option>
+                                <option value="PATCH">PATCH</option>
+                                <option value="HEAD">HEAD</option>
+                                <option value="OPTIONS">OPTIONS</option>
+                            </select>
+                        </div>
+                         <div class="form-group">
+                            <label for="node-setting-http-headers" data-i18n="headers">Headers (JSON):</label>
+                            <textarea id="node-setting-http-headers" rows="3" placeholder='{ "Content-Type": "application/json" }'></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="node-setting-http-body" data-i18n="body">Body:</label>
+                            <textarea id="node-setting-http-body" rows="4" placeholder='{ "key": "value" }'></textarea>
+                        </div>
+                         <div class="form-group">
+                             <button id="test-http-request-btn" class="btn test-btn" data-i18n="testRequest">Test Request</button>
+                         </div>
+                         <div class="test-result-section">
+                             <h5 data-i18n="testResult">Test Result:</h5>
+                             <pre id="http-test-result"></pre>
+                         </div>
+                    </div>
+
+                    <!-- Add sections for other node types here -->
+                    <!-- e.g., <div class="settings-section type-settings mysql-settings" data-node-type="mysql" style="display: none;">...</div> -->
+
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                 <button id="save-node-settings-btn" class="btn primary-btn" data-i18n="save">Save Changes</button>
+                <button id="cancel-node-settings-btn" class="btn" data-i18n="cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
 
 <script src="main.js"></script>
 </body>
