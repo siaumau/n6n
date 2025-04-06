@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const exportTextarea = document.getElementById('export-textarea');
     const closeExportModalBtn = document.querySelector('.close-export-modal');
     const copyExportJsonBtn = document.getElementById('copy-export-json');
+    const downloadExportJsonBtn = document.getElementById('download-export-json');
     const nodeSearchInput = document.getElementById('node-search');
 
     // Node Settings Modal Elements (Added)
@@ -190,6 +191,7 @@ document.addEventListener('DOMContentLoaded', function() {
         exportButton.addEventListener('click', showExportModal);
         closeExportModalBtn.addEventListener('click', hideExportModal);
         copyExportJsonBtn.addEventListener('click', copyExportJsonToClipboard);
+        downloadExportJsonBtn.addEventListener('click', downloadExportJson);
 
         // Settings Modal Buttons (Added)
         closeSettingsModalBtn.addEventListener('click', hideNodeSettingsModal);
@@ -1135,6 +1137,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         // Deselect text
         window.getSelection()?.removeAllRanges();
+    }
+
+    /**
+     * Creates a file download for the exported JSON.
+     */
+    function downloadExportJson() {
+        const jsonString = exportTextarea.value;
+        if (!jsonString) {
+            alert("Nothing to download."); // i18n needed
+            return;
+        }
+
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        // Suggest a filename (e.g., based on workflow name or date)
+        const workflowName = document.querySelector('.workflow-title span')?.textContent || 'workflow';
+        const filename = `${workflowName.replace(/\s+/g, '_')}.json`;
+        a.download = filename;
+
+        // Append the link to the body, click it, and then remove it
+        document.body.appendChild(a);
+        a.click();
+
+        // Clean up: remove the link and revoke the object URL
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        console.log(`JSON download initiated as ${filename}`);
+        // Optionally provide feedback
+        // showTemporaryFeedback("JSON download started!"); // Needs showTemporaryFeedback function
     }
 
 
