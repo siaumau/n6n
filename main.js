@@ -209,6 +209,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
          // Prevent context menu on the custom one
          contextMenu.addEventListener('contextmenu', e => e.preventDefault());
+
+        // Save Button (Find the actual save button in HTML and add listener)
+        // Assuming the top-right save button has id="save-workflow-button"
+        const saveWorkflowButton = document.getElementById('save-workflow-button');
+        if (saveWorkflowButton) {
+            saveWorkflowButton.addEventListener('click', saveWorkflow);
+        } else {
+            console.warn('Save button (#save-workflow-button) not found in HTML.');
+            // Maybe it's the one from the settings modal? No, that's saveNodeSettings.
+            // Need to ensure the correct button exists in index.html
+        }
     }
 
     // --- Node Management ---
@@ -1117,10 +1128,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- Workflow Load/Save (Placeholders) ---
     function saveWorkflow() {
-        // Example: Save to localStorage
-        // localStorage.setItem('myWorkflowData', JSON.stringify(workflowData));
-        // console.log("Workflow saved.");
-        alert("Save functionality not implemented yet.");
+        try {
+            localStorage.setItem('myWorkflowData', JSON.stringify(workflowData));
+            console.log("Workflow saved to localStorage.", workflowData);
+            // Provide user feedback (e.g., a temporary message)
+            showTemporaryFeedback("Workflow saved!"); // i18n needed
+        } catch (error) {
+            console.error("Failed to save workflow to localStorage:", error);
+            alert("Error saving workflow. LocalStorage might be full or unavailable."); // i18n needed
+        }
     }
 
     function loadWorkflow() {
@@ -1359,6 +1375,48 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- End Settings Modal ---
+
+    // --- Utility Functions ---
+
+    /**
+     * Shows a temporary feedback message on the screen.
+     * @param {string} message - The message to display.
+     * @param {number} duration - How long to display the message in milliseconds.
+     */
+    function showTemporaryFeedback(message, duration = 2000) {
+        let feedbackEl = document.getElementById('feedback-message');
+        if (!feedbackEl) {
+            feedbackEl = document.createElement('div');
+            feedbackEl.id = 'feedback-message';
+            feedbackEl.style.position = 'fixed';
+            feedbackEl.style.bottom = '20px';
+            feedbackEl.style.left = '50%';
+            feedbackEl.style.transform = 'translateX(-50%)';
+            feedbackEl.style.padding = '10px 20px';
+            feedbackEl.style.backgroundColor = 'rgba(0, 123, 255, 0.8)';
+            feedbackEl.style.color = 'white';
+            feedbackEl.style.borderRadius = '5px';
+            feedbackEl.style.zIndex = '1001';
+            feedbackEl.style.opacity = '0';
+            feedbackEl.style.transition = 'opacity 0.3s ease-in-out';
+            document.body.appendChild(feedbackEl);
+        }
+
+        feedbackEl.textContent = message;
+        feedbackEl.style.opacity = '1';
+
+        // Clear any existing timeout
+        if (feedbackEl.timeoutId) {
+            clearTimeout(feedbackEl.timeoutId);
+        }
+
+        // Set new timeout to hide
+        feedbackEl.timeoutId = setTimeout(() => {
+            feedbackEl.style.opacity = '0';
+             // Optional: remove element after fade out
+            // setTimeout(() => feedbackEl.remove(), 300);
+        }, duration);
+    }
 
     // --- Start the Application ---
     initializeApp();
