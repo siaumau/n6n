@@ -1,738 +1,1135 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // 工作流相關數據
+    // Workflow data store
     const workflowData = {
         nodes: [],
         connections: [],
-        nextNodeId: 1
+        nextNodeId: 1,
+        startNodeId: null // Track the designated start node
     };
 
-    // 畫布與拖拽相關變量
+    // DOM Elements
     const canvas = document.getElementById('workflow-canvas');
-    let canvasOffset = { x: canvas.offsetLeft, y: canvas.offsetTop };
-    let canvasScale = 1;
-    let isDragging = false;
-    let draggedNode = null;
-    let dragOffset = { x: 0, y: 0 };
-    let isConnecting = false;  // 定義isConnecting變量
-    let connectionStartPoint = null;
-    let tempConnectionLine = null;
-
-    // 上下文選單元素
     const contextMenu = document.getElementById('node-context-menu');
-
-    // 節點選擇器元素
     const nodeSelector = document.getElementById('node-selector');
+    const exportButton = document.getElementById('export-button');
+    const exportModal = document.getElementById('export-modal');
+    const exportTextarea = document.getElementById('export-textarea');
+    const closeExportModalBtn = document.querySelector('.close-export-modal');
+    const copyExportJsonBtn = document.getElementById('copy-export-json');
+    const nodeSearchInput = document.getElementById('node-search');
 
-    // 初始化畫布事件
-    initCanvasEvents();
 
-    // 初始化其他UI事件
-    initUIEvents();
+    // State variables
+    let canvasOffset = { x: 0, y: 0 };
+    let isDraggingNode = false;
+    let draggedNodeElement = null;
+    let dragStartOffset = { x: 0, y: 0 };
 
-    // 加載示例工作流
-    loadExampleWorkflow();
+    let isConnecting = false;
+    let connectionStartPointElement = null; // The output point element where connection starts
+    let tempConnectionLineSvg = null; // The temporary SVG line element
+    let currentHoveredInputPoint = null; // The input point currently highlighted for snapping
 
-    /**
-     * 初始化畫布事件
-     */
-    function initCanvasEvents() {
-        // 畫布點擊事件
-        canvas.addEventListener('click', function(e) {
-            // 隱藏上下文選單
-            contextMenu.style.display = 'none';
+    // --- Initialization ---
 
-            // 如果正在連接節點，取消連接
-            if (isConnecting) {
-                cancelConnection();
-            }
-        });
-
-        // 畫布右鍵事件
-        canvas.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-
-            // 顯示節點選擇器
-            showNodeSelector(e.clientX, e.clientY);
-        });
-
-        // 畫布拖動事件
-        canvas.addEventListener('mousemove', function(e) {
-            if (isDragging && draggedNode) {
-                const x = e.clientX - canvasOffset.x - dragOffset.x;
-                const y = e.clientY - canvasOffset.y - dragOffset.y;
-
-                draggedNode.style.left = x + 'px';
-                draggedNode.style.top = y + 'px';
-
-                // 更新節點數據
-                const nodeId = draggedNode.getAttribute('data-id');
-                const node = workflowData.nodes.find(n => n.id === parseInt(nodeId));
-                if (node) {
-                    node.position = { x, y };
-
-                    // 更新連接線
-                    updateConnections();
-                }
-            }
-
-            // 如果正在連接節點，更新臨時連接線
-            if (isConnecting && connectionStartPoint && tempConnectionLine) {
-                const endX = e.clientX - canvasOffset.x;
-                const endY = e.clientY - canvasOffset.y;
-
-                updateTempConnectionLine(endX, endY);
-            }
-        });
-
-        // 結束拖動事件
-        document.addEventListener('mouseup', function(e) {
-            isDragging = false;
-            draggedNode = null;
-
-            // 如果正在連接節點並且有臨時連接線，嘗試完成連接
-            if (isConnecting && tempConnectionLine) {
-                finishConnection(e);
-            }
-        });
-
-        // 初始化畫布位置偏移
+    function initializeApp() {
         updateCanvasOffset();
-        window.addEventListener('resize', updateCanvasOffset);
-
-        // 處理連接節點時的吸附效果
-        document.addEventListener('mousemove', function(e) {
-            if (isConnecting && connectionStartPoint && tempConnectionLine) {
-                // 默認終點是鼠標位置
-                let endX = e.clientX - canvasOffset.x;
-                let endY = e.clientY - canvasOffset.y;
-
-                // 檢查是否鼠標靠近某個輸入連接點
-                const mouseX = e.clientX;
-                const mouseY = e.clientY;
-                const snapDistance = 30; // 吸附距離（像素）
-
-                let closestPoint = null;
-                let minDistance = snapDistance;
-
-                // 尋找最近的輸入連接點
-                document.querySelectorAll('.connection-point.input').forEach(point => {
-                    const rect = point.getBoundingClientRect();
-                    const pointCenterX = rect.left + rect.width / 2;
-                    const pointCenterY = rect.top + rect.height / 2;
-
-                    // 計算距離
-                    const distance = Math.sqrt(
-                        Math.pow(mouseX - pointCenterX, 2) +
-                        Math.pow(mouseY - pointCenterY, 2)
-                    );
-
-                    // 檢查是否是最近的點且不屬於同一節點
-                    if (distance < minDistance && point.parentElement !== connectionStartPoint.parentElement) {
-                        minDistance = distance;
-                        closestPoint = point;
-                    }
-                });
-
-                // 如果有最近的點，使用其位置作為終點
-                if (closestPoint) {
-                    const rect = closestPoint.getBoundingClientRect();
-                    endX = rect.left + rect.width / 2 - canvasOffset.x;
-                    endY = rect.top + rect.height / 2 - canvasOffset.y;
-
-                    // 高亮顯示
-                    document.querySelectorAll('.connection-point.highlight-snap').forEach(p => {
-                        p.classList.remove('highlight-snap');
-                    });
-                    closestPoint.classList.add('highlight-snap');
-                } else {
-                    // 移除所有吸附高亮
-                    document.querySelectorAll('.connection-point.highlight-snap').forEach(p => {
-                        p.classList.remove('highlight-snap');
-                    });
-                }
-
-                updateTempConnectionLine(endX, endY);
-            }
-        });
+        initCanvasEvents();
+        initUIEvents();
+        // Load workflow if needed (e.g., from localStorage)
+        // loadWorkflow();
+        renderWorkflow(); // Initial render if loading data
+        console.log("Workflow Tool Initialized");
     }
 
-    /**
-     * 初始化其他UI事件
-     */
+    function updateCanvasOffset() {
+        const rect = canvas.getBoundingClientRect();
+        canvasOffset = { x: rect.left, y: rect.top };
+    }
+
+    // --- Canvas Event Handling ---
+
+    function initCanvasEvents() {
+        canvas.addEventListener('mousedown', handleCanvasMouseDown);
+        canvas.addEventListener('mousemove', handleCanvasMouseMove);
+        canvas.addEventListener('mouseup', handleCanvasMouseUp);
+        canvas.addEventListener('contextmenu', handleCanvasContextMenu);
+        canvas.addEventListener('click', handleCanvasClick); // For hiding context menu
+        window.addEventListener('resize', updateCanvasOffset); // Recalculate offset on resize
+    }
+
+    function handleCanvasMouseDown(e) {
+        // Potential future use: Panning the canvas
+        // For now, mainly ensures clicks on canvas background hide menus
+        hideContextMenu();
+        if (isConnecting) {
+             // If mouse down on canvas while connecting, cancel it
+             // (unless mouseup handles it - this might be redundant)
+             // cancelConnection();
+        }
+    }
+
+    function handleCanvasMouseMove(e) {
+        if (isDraggingNode && draggedNodeElement) {
+            // Calculate new position relative to canvas origin
+            const x = e.clientX - canvasOffset.x - dragStartOffset.x;
+            const y = e.clientY - canvasOffset.y - dragStartOffset.y;
+
+            // Move the node element visually
+            draggedNodeElement.style.left = `${x}px`;
+            draggedNodeElement.style.top = `${y}px`;
+
+            // Update connections attached to this node in real-time
+            updateConnectionsForNode(parseInt(draggedNodeElement.dataset.id));
+
+        } else if (isConnecting && connectionStartPointElement && tempConnectionLineSvg) {
+            updateTemporaryLine(e);
+            handleConnectionSnapping(e);
+        }
+    }
+
+     function handleCanvasMouseUp(e) {
+        // Stop Node Dragging
+        if (isDraggingNode) {
+            const nodeId = parseInt(draggedNodeElement.dataset.id);
+            const nodeData = findNodeData(nodeId);
+            if (nodeData) {
+                // Final position update in data model
+                const finalX = parseFloat(draggedNodeElement.style.left);
+                const finalY = parseFloat(draggedNodeElement.style.top);
+                nodeData.position = { x: finalX, y: finalY };
+                console.log(`Node ${nodeId} moved to`, nodeData.position);
+                updateConnectionsForNode(nodeId); // Ensure final update
+            }
+            draggedNodeElement.classList.remove('dragging'); // Optional: style for dragging node
+            isDraggingNode = false;
+            draggedNodeElement = null;
+        }
+
+        // Finalize or Cancel Connection
+        if (isConnecting) {
+            finalizeConnection(e);
+        }
+     }
+
+    function handleCanvasContextMenu(e) {
+        e.preventDefault();
+        hideContextMenu(); // Hide any previous menu
+         // Show Node Selector ONLY if clicking empty canvas space
+         // Check if the direct target is the canvas itself
+         if (e.target === canvas) {
+             showNodeSelector(e.clientX, e.clientY);
+         }
+    }
+
+     function handleCanvasClick(e) {
+        // Hide context menu if clicking anywhere on canvas background
+        if (e.target === canvas) {
+            hideContextMenu();
+        }
+        // Note: Clicking on lines to delete is handled by listeners on the lines themselves
+    }
+
+
+    // --- UI Event Handling ---
+
     function initUIEvents() {
-        // 添加按鈕事件
-        document.querySelector('.add-btn').addEventListener('click', function() {
-            showNodeSelector();
+        // Add Node Button
+        document.querySelector('.add-btn').addEventListener('click', () => {
+            showNodeSelector(null, null, true); // Center the selector
         });
 
-        // 節點選擇器關閉按鈕
-        document.querySelector('.node-selector .close-btn').addEventListener('click', function() {
-            hideNodeSelector();
-        });
+        // Close Node Selector
+        nodeSelector.querySelector('.close-btn').addEventListener('click', hideNodeSelector);
 
-        // 節點選擇事件
-        document.querySelectorAll('.node-selector .node').forEach(nodeEl => {
-            nodeEl.addEventListener('click', function() {
-                const nodeType = this.getAttribute('data-type');
-                const centerX = canvas.clientWidth / 2 - 90;
-                const centerY = canvas.clientHeight / 2 - 50;
+        // Node Selection Items
+        document.querySelectorAll('.node-selector .node-select-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const nodeType = this.dataset.type;
+                // Position new node near where selector was opened, or center if button used
+                const selectorRect = nodeSelector.getBoundingClientRect();
+                const canvasRect = canvas.getBoundingClientRect();
+                let initialX = (selectorRect.left - canvasRect.left + selectorRect.width / 2);
+                let initialY = (selectorRect.top - canvasRect.top + 50); // Slightly below
 
-                addNode(nodeType, centerX, centerY);
+                // If opened via Add button (centered), place in canvas center
+                 if (nodeSelector.dataset.centered === 'true') {
+                     initialX = canvas.clientWidth / 2 - 90; // Approx node width / 2
+                     initialY = canvas.clientHeight / 2 - 40; // Approx node height / 2
+                 }
+
+                // Ensure node is within canvas bounds (simple check)
+                 initialX = Math.max(0, Math.min(initialX, canvas.clientWidth - 180));
+                 initialY = Math.max(0, Math.min(initialY, canvas.clientHeight - 80));
+
+
+                addNode(nodeType, initialX, initialY);
                 hideNodeSelector();
             });
         });
+
+        // Node Search Filter
+        nodeSearchInput.addEventListener('input', filterNodeSelector);
+
+        // Export Button
+        exportButton.addEventListener('click', showExportModal);
+        closeExportModalBtn.addEventListener('click', hideExportModal);
+        copyExportJsonBtn.addEventListener('click', copyExportJsonToClipboard);
+
+        // Hide context menu on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                hideContextMenu();
+                hideNodeSelector();
+                if (isConnecting) cancelConnection(); // Cancel connection on escape
+                hideExportModal();
+            }
+        });
+
+         // Prevent context menu on the custom one
+         contextMenu.addEventListener('contextmenu', e => e.preventDefault());
     }
 
-    /**
-     * 加載示例工作流
-     */
-    function loadExampleWorkflow() {
-        // 添加節點
-        const trigger = addNode('webhook', 150, 200);
-        trigger.querySelector('.node-title').textContent = "When clicking 'Test workflow'";
-
-        const mysql = addNode('mysql', 350, 200);
-        mysql.querySelector('.node-title').textContent = "MySQL";
-        mysql.querySelector('.node-content').textContent = "select";
-
-        const datetime = addNode('datetime', 550, 200);
-        datetime.querySelector('.node-title').textContent = "Date & Time";
-
-        // 創建連接
-        createConnection(
-            trigger.querySelector('.connection-point.output'),
-            mysql.querySelector('.connection-point.input')
-        );
-
-        createConnection(
-            mysql.querySelector('.connection-point.output'),
-            datetime.querySelector('.connection-point.input')
-        );
-    }
+    // --- Node Management ---
 
     /**
-     * 添加節點
-     * @param {string} type 節點類型
-     * @param {number} x X坐標
-     * @param {number} y Y坐標
-     * @returns {HTMLElement} 節點元素
+     * Adds a node to the workflow data and renders it on the canvas.
+     * @param {string} type - The type of the node (e.g., 'webhook', 'mysql').
+     * @param {number} x - The initial X position.
+     * @param {number} y - The initial Y position.
+     * @returns {object} The added node data object.
      */
     function addNode(type, x, y) {
         const nodeId = workflowData.nextNodeId++;
         const nodeData = {
             id: nodeId,
             type: type,
+            name: `${type.charAt(0).toUpperCase() + type.slice(1)} ${nodeId}`, // Default name
             position: { x, y },
-            data: {}
+            parameters: {}, // Placeholder for node-specific settings
+            notes: ''       // Placeholder for user notes
+            // Add other n8n relevant fields if needed immediately
         };
 
-        // 創建節點DOM元素
-        const nodeEl = document.createElement('div');
-        nodeEl.className = 'node-wrapper';
-        nodeEl.style.left = x + 'px';
-        nodeEl.style.top = y + 'px';
-        nodeEl.setAttribute('data-id', nodeId);
-
-        // 節點內容
-        let nodeIconClass = 'fas fa-cog';
-        let nodeColor = '#888';
-        let nodeBorderClass = '';
-        let leftBorderColor = '';
-
-        switch (type) {
-            case 'webhook':
-                nodeIconClass = 'fas fa-bolt';
-                nodeColor = '#ff7043';
-                nodeBorderClass = 'trigger-node';
-                leftBorderColor = '#ff7043';
-                break;
-            case 'mysql':
-                nodeIconClass = 'fas fa-database';
-                nodeColor = '#29b6f6';
-                nodeBorderClass = 'database-node';
-                leftBorderColor = '#29b6f6';
-                break;
-            case 'datetime':
-                nodeIconClass = 'fas fa-clock';
-                nodeColor = '#4caf50';
-                nodeBorderClass = 'utility-node';
-                leftBorderColor = '#4caf50';
-                break;
-            case 'function':
-                nodeIconClass = 'fas fa-code';
-                nodeColor = '#9c27b0';
-                nodeBorderClass = 'utility-node';
-                leftBorderColor = '#9c27b0';
-                break;
-        }
-
-        nodeEl.innerHTML = `
-            <div class="node ${nodeBorderClass}" data-type="${type}" style="border-left: 3px solid ${leftBorderColor}">
-                <div class="node-header">
-                    <div class="node-icon" style="background-color: ${nodeColor}">
-                        <i class="${nodeIconClass}"></i>
-                    </div>
-                    <div class="node-title">${type.charAt(0).toUpperCase() + type.slice(1)}</div>
-                </div>
-                <div class="node-content"></div>
-            </div>
-            <div class="connection-point input" title="輸入連接點"></div>
-            <div class="connection-point output" title="輸出連接點"></div>
-        `;
-
-        // 添加節點拖拽事件
-        const nodeHeader = nodeEl.querySelector('.node-header');
-        nodeHeader.addEventListener('mousedown', function(e) {
-            e.stopPropagation();
-            isDragging = true;
-            draggedNode = nodeEl;
-
-            const rect = nodeEl.getBoundingClientRect();
-            dragOffset.x = e.clientX - rect.left;
-            dragOffset.y = e.clientY - rect.top;
-        });
-
-        // 添加節點右鍵選單事件
-        nodeEl.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            showContextMenu(e.clientX, e.clientY, nodeId);
-        });
-
-        // 添加連接點事件
-        const inputPoint = nodeEl.querySelector('.connection-point.input');
-        const outputPoint = nodeEl.querySelector('.connection-point.output');
-
-        outputPoint.addEventListener('mousedown', function(e) {
-            e.stopPropagation();
-            // 開始連接
-            startConnection(outputPoint);
-        });
-
-        // 連接點滑鼠放開事件
-        inputPoint.addEventListener('mouseup', function(e) {
-            e.stopPropagation();
-            // 完成連接
-            if (isConnecting && connectionStartPoint) {
-                finishConnectionToPoint(inputPoint);
-            }
-        });
-
-        // 將節點添加到畫布
-        canvas.appendChild(nodeEl);
-
-        // 將節點數據添加到工作流數據
         workflowData.nodes.push(nodeData);
+        renderNode(nodeData); // Render the new node
 
-        return nodeEl;
+        console.log(`Node added: ${nodeData.name} (ID: ${nodeId}) at (${x}, ${y})`);
+        return nodeData;
     }
 
-    /**
-     * 創建連接
-     * @param {HTMLElement} startPoint 起始連接點
-     * @param {HTMLElement} endPoint 結束連接點
+     /**
+     * Renders a single node element on the canvas based on its data.
+     * @param {object} nodeData - The data object for the node.
      */
-    function createConnection(startPoint, endPoint) {
-        if (!startPoint || !endPoint) return;
+    function renderNode(nodeData) {
+         // Remove existing element if re-rendering
+         const existingEl = document.querySelector(`.node-wrapper[data-id="${nodeData.id}"]`);
+         if (existingEl) existingEl.remove();
 
-        const startNodeEl = startPoint.parentElement;
-        const endNodeEl = endPoint.parentElement;
+         const nodeWrapper = document.createElement('div');
+         nodeWrapper.className = 'node-wrapper no-select'; // Add no-select
+         nodeWrapper.style.left = `${nodeData.position.x}px`;
+         nodeWrapper.style.top = `${nodeData.position.y}px`;
+         nodeWrapper.dataset.id = nodeData.id;
 
-        if (!startNodeEl || !endNodeEl) return;
+         // --- Determine Icon and Color ---
+         let iconClass = 'fas fa-cog'; // Default
+         let nodeColor = '#777'; // Default color
+         const nodeType = nodeData.type.toLowerCase();
 
-        const startNodeId = parseInt(startNodeEl.getAttribute('data-id'));
-        const endNodeId = parseInt(endNodeEl.getAttribute('data-id'));
+         // Simple mapping (expand as needed from CSS)
+         const typeMap = {
+             webhook: { icon: 'fa-bolt', color: '#ff7043' },
+             schedule: { icon: 'fa-clock', color: '#8e44ad' },
+             manual: { icon: 'fa-play', color: '#3498db' },
+             mysql: { icon: 'fa-database', color: '#00758f' },
+             postgres: { icon: 'fa-database', color: '#336791' },
+             sqlite: { icon: 'fa-database', color: '#003b57' },
+             datetime: { icon: 'fa-calendar-alt', color: '#4caf50' },
+             function: { icon: 'fa-code', color: '#f39c12' },
+             set: { icon: 'fa-sliders-h', color: '#1abc9c' },
+             if: { icon: 'fa-code-branch', color: '#e74c3c' },
+             email: { icon: 'fa-envelope', color: '#3498db' },
+             http: { icon: 'fa-globe', color: '#2ecc71' },
+         };
+         if (typeMap[nodeType]) {
+             iconClass = `fas ${typeMap[nodeType].icon}`;
+             nodeColor = typeMap[nodeType].color;
+         }
 
-        // 檢查是否已經存在連接
-        const existingConnection = workflowData.connections.find(conn =>
-            conn.source === startNodeId && conn.target === endNodeId);
-
-        if (existingConnection) return;
-
-        // 創建連接數據
-        const connectionData = {
-            id: Date.now(),
-            source: startNodeId,
-            target: endNodeId
-        };
-
-        // 將連接數據添加到工作流數據
-        workflowData.connections.push(connectionData);
-
-        // 創建連接線DOM元素
-        createConnectionLine(connectionData);
-    }
-
-    /**
-     * 創建連接線DOM元素
-     * @param {Object} connectionData 連接數據
-     */
-    function createConnectionLine(connectionData) {
-        const sourceNode = workflowData.nodes.find(n => n.id === connectionData.source);
-        const targetNode = workflowData.nodes.find(n => n.id === connectionData.target);
-
-        if (!sourceNode || !targetNode) return;
-
-        // 獲取起始和結束節點的位置
-        const sourceNodeEl = document.querySelector(`.node-wrapper[data-id="${sourceNode.id}"]`);
-        const targetNodeEl = document.querySelector(`.node-wrapper[data-id="${targetNode.id}"]`);
-
-        if (!sourceNodeEl || !targetNodeEl) return;
-
-        // 獲取連接點的相對位置
-        const outputPoint = sourceNodeEl.querySelector('.connection-point.output');
-        const inputPoint = targetNodeEl.querySelector('.connection-point.input');
-
-        // 計算連接線的起點和終點
-        const startRect = outputPoint.getBoundingClientRect();
-        const endRect = inputPoint.getBoundingClientRect();
-
-        const startX = startRect.left + startRect.width / 2 - canvasOffset.x;
-        const startY = startRect.top + startRect.height / 2 - canvasOffset.y;
-        const endX = endRect.left + endRect.width / 2 - canvasOffset.x;
-        const endY = endRect.top + endRect.height / 2 - canvasOffset.y;
-
-        // 計算控制點的偏移量
-        const offsetX = Math.abs(endX - startX) * 0.5;
-
-        // 創建連接線元素
-        const connectionLine = document.createElement('svg');
-        connectionLine.className = 'connection-line';
-        connectionLine.setAttribute('data-id', connectionData.id);
-        connectionLine.setAttribute('data-source', connectionData.source);
-        connectionLine.setAttribute('data-target', connectionData.target);
-        connectionLine.setAttribute('width', canvas.clientWidth);
-        connectionLine.setAttribute('height', canvas.clientHeight);
-        connectionLine.innerHTML = `
-            <path d="M${startX},${startY} C${startX + offsetX},${startY} ${endX - offsetX},${endY} ${endX},${endY}"
-                  stroke="#aaa"
-                  stroke-width="2"
-                  fill="none" />
+         // --- Create Node HTML ---
+         nodeWrapper.innerHTML = `
+            <div class="node" data-type="${nodeType}">
+                <div class="node-header">
+                    <div class="node-icon" style="background-color: ${nodeColor};">
+                        <i class="${iconClass}"></i>
+                    </div>
+                    <div class="node-title">${nodeData.name}</div>
+                </div>
+                <div class="node-content">
+                   ${nodeData.notes || ''} <!-- Display notes if any -->
+                </div>
+            </div>
+            <div class="connection-point input" title="Input Connection"></div>
+            <div class="connection-point output" title="Output Connection"></div>
         `;
 
-        // 將連接線添加到畫布
-        canvas.appendChild(connectionLine);
+         // Apply start node style if applicable
+         if (workflowData.startNodeId === nodeData.id) {
+            nodeWrapper.querySelector('.node').classList.add('start-node');
+         }
+
+         // --- Add Event Listeners ---
+         const nodeElement = nodeWrapper.querySelector('.node');
+
+         // Dragging (using node element as handle)
+         nodeElement.addEventListener('mousedown', (e) => {
+             // Allow dragging only with left mouse button
+             if (e.button !== 0) return;
+             e.stopPropagation(); // Prevent canvas mousedown
+             isDraggingNode = true;
+             draggedNodeElement = nodeWrapper;
+             draggedNodeElement.classList.add('dragging'); // Add dragging style
+
+             // Calculate offset from top-left corner of the node wrapper
+             const rect = nodeWrapper.getBoundingClientRect();
+             dragStartOffset.x = e.clientX - rect.left;
+             dragStartOffset.y = e.clientY - rect.top;
+
+             hideContextMenu();
+         });
+
+         // Node Context Menu
+         nodeWrapper.addEventListener('contextmenu', (e) => {
+             e.preventDefault();
+             e.stopPropagation(); // Prevent canvas context menu
+             showContextMenu(e.clientX, e.clientY, nodeData.id);
+         });
+
+         // Node Double-click for Settings (Placeholder)
+         nodeElement.addEventListener('dblclick', (e) => {
+             e.stopPropagation();
+             console.log(`Double-clicked node ${nodeData.id} (${nodeData.type}). Open settings modal here.`);
+             alert(`Node Settings Placeholder\n\nNode ID: ${nodeData.id}\nType: ${nodeData.type}\nName: ${nodeData.name}\n\n(Implement a real settings panel)`);
+             // Future: Call function to open a dedicated settings modal/panel
+             // openNodeSettings(nodeData.id);
+         });
+
+
+         // Connection Points
+         const outputPoint = nodeWrapper.querySelector('.connection-point.output');
+         const inputPoint = nodeWrapper.querySelector('.connection-point.input');
+
+         outputPoint.addEventListener('mousedown', (e) => {
+             e.stopPropagation(); // Prevent node drag
+             e.preventDefault(); // Prevent text selection etc.
+             startConnection(outputPoint);
+         });
+
+         inputPoint.addEventListener('mouseenter', () => {
+             if (isConnecting && connectionStartPointElement?.parentElement !== nodeWrapper) {
+                 inputPoint.classList.add('highlight-snap');
+                 currentHoveredInputPoint = inputPoint; // Track hovered point
+             }
+         });
+
+         inputPoint.addEventListener('mouseleave', () => {
+             inputPoint.classList.remove('highlight-snap');
+             if(currentHoveredInputPoint === inputPoint) {
+                 currentHoveredInputPoint = null;
+             }
+         });
+
+         // Mouseup on input point is handled by the general canvas mouseup (finalizeConnection)
+
+         canvas.appendChild(nodeWrapper);
     }
 
-    /**
-     * 更新所有連接線
-     */
-    function updateConnections() {
-        // 移除所有現有的連接線
-        document.querySelectorAll('.connection-line').forEach(line => {
-            line.remove();
-        });
-
-        // 重新創建所有連接線
-        workflowData.connections.forEach(connection => {
-            createConnectionLine(connection);
-        });
-    }
 
     /**
-     * 開始連接
-     * @param {HTMLElement} outputPoint 輸出連接點
-     */
-    function startConnection(outputPoint) {
-        isConnecting = true;
-        connectionStartPoint = outputPoint;
-
-        // 標記起始連接點為激活狀態
-        outputPoint.classList.add('active');
-
-        // 創建臨時連接線
-        const rect = outputPoint.getBoundingClientRect();
-        const startX = rect.left + rect.width / 2 - canvasOffset.x;
-        const startY = rect.top + rect.height / 2 - canvasOffset.y;
-
-        tempConnectionLine = document.createElement('svg');
-        tempConnectionLine.className = 'connection-line';
-        tempConnectionLine.setAttribute('width', canvas.clientWidth);
-        tempConnectionLine.setAttribute('height', canvas.clientHeight);
-        tempConnectionLine.innerHTML = `
-            <path d="M${startX},${startY} L${startX},${startY}"
-                  stroke="#ff55aa"
-                  stroke-width="2"
-                  stroke-dasharray="4"
-                  fill="none" />
-        `;
-
-        // 將臨時連接線添加到畫布
-        canvas.appendChild(tempConnectionLine);
-
-        // 高亮顯示所有可能的目標連接點
-        document.querySelectorAll('.connection-point.input').forEach(point => {
-            // 不要高亮顯示同一節點上的連接點或已連接的連接點
-            const parentNode = point.parentElement;
-            const outputParentNode = outputPoint.parentElement;
-
-            if (parentNode !== outputParentNode) {
-                point.classList.add('highlight');
-            }
-        });
-    }
-
-    /**
-     * 更新臨時連接線
-     * @param {number} endX 終點X坐標
-     * @param {number} endY 終點Y坐標
-     */
-    function updateTempConnectionLine(endX, endY) {
-        const rect = connectionStartPoint.getBoundingClientRect();
-        const startX = rect.left + rect.width / 2 - canvasOffset.x;
-        const startY = rect.top + rect.height / 2 - canvasOffset.y;
-
-        // 計算控制點的偏移量
-        const offsetX = Math.abs(endX - startX) * 0.5;
-
-        // 更新臨時連接線的路徑
-        tempConnectionLine.innerHTML = `
-            <path d="M${startX},${startY} C${startX + offsetX},${startY} ${endX - offsetX},${endY} ${endX},${endY}"
-                  stroke="#ff55aa"
-                  stroke-width="2"
-                  stroke-dasharray="4"
-                  fill="none" />
-        `;
-    }
-
-    /**
-     * 取消連接
-     */
-    function cancelConnection() {
-        if (tempConnectionLine) {
-            tempConnectionLine.remove();
-            tempConnectionLine = null;
-        }
-
-        // 移除連接點的激活狀態
-        if (connectionStartPoint) {
-            connectionStartPoint.classList.remove('active');
-        }
-
-        // 移除所有連接點的高亮顯示
-        document.querySelectorAll('.connection-point.highlight, .connection-point.highlight-snap').forEach(point => {
-            point.classList.remove('highlight');
-            point.classList.remove('highlight-snap');
-        });
-
-        isConnecting = false;
-        connectionStartPoint = null;
-    }
-
-    /**
-     * 完成連接
-     */
-    function finishConnection(e) {
-        // 獲取當前鼠標下的高亮吸附點
-        const snapPoint = document.querySelector('.connection-point.highlight-snap');
-
-        if (snapPoint) {
-            finishConnectionToPoint(snapPoint);
-        } else {
-            // 檢查是否有連接點在鼠標下方
-            const elements = document.elementsFromPoint(e.clientX, e.clientY);
-            const inputPoint = elements.find(el =>
-                el.classList.contains('connection-point') &&
-                el.classList.contains('input') &&
-                el.parentElement !== connectionStartPoint.parentElement
-            );
-
-            if (inputPoint) {
-                finishConnectionToPoint(inputPoint);
-            } else {
-                cancelConnection();
-            }
-        }
-    }
-
-    /**
-     * 完成到指定連接點的連接
-     * @param {HTMLElement} inputPoint 輸入連接點
-     */
-    function finishConnectionToPoint(inputPoint) {
-        // 獲取起始和結束節點
-        const startNodeEl = connectionStartPoint.parentElement;
-        const endNodeEl = inputPoint.parentElement;
-
-        if (startNodeEl === endNodeEl) {
-            // 不允許連接到同一節點
-            cancelConnection();
-            return;
-        }
-
-        // 創建連接
-        createConnection(connectionStartPoint, inputPoint);
-
-        // 移除臨時連接線和高亮顯示
-        cancelConnection();
-
-        // 視覺反饋
-        inputPoint.classList.add('connected');
-        connectionStartPoint.classList.add('connected');
-
-        // 短暫高亮顯示連接線
-        const connectionLine = document.querySelector(`.connection-line[data-id="${workflowData.connections[workflowData.connections.length - 1].id}"] path`);
-        if (connectionLine) {
-            connectionLine.setAttribute('stroke', '#ff55aa');
-            setTimeout(() => {
-                connectionLine.setAttribute('stroke', '#aaa');
-            }, 500);
-        }
-    }
-
-    /**
-     * 顯示節點上下文選單
-     * @param {number} x X坐標
-     * @param {number} y Y坐標
-     * @param {number} nodeId 節點ID
-     */
-    function showContextMenu(x, y, nodeId) {
-        contextMenu.style.display = 'block';
-        contextMenu.style.left = x + 'px';
-        contextMenu.style.top = y + 'px';
-        contextMenu.setAttribute('data-node-id', nodeId);
-
-        // 添加選單項的點擊事件
-        document.querySelectorAll('#node-context-menu li').forEach(item => {
-            item.onclick = function() {
-                const action = this.textContent.toLowerCase().replace(/\s+/g, '-');
-                const targetNodeId = parseInt(contextMenu.getAttribute('data-node-id'));
-
-                handleContextMenuAction(action, targetNodeId);
-                contextMenu.style.display = 'none';
-            };
-        });
-    }
-
-    /**
-     * 處理節點上下文選單動作
-     * @param {string} action 動作
-     * @param {number} nodeId 節點ID
-     */
-    function handleContextMenuAction(action, nodeId) {
-        switch (action) {
-            case 'delete':
-                deleteNode(nodeId);
-                break;
-            case 'run-node':
-                runNode(nodeId);
-                break;
-            case 'set-as-start-node':
-                setAsStartNode(nodeId);
-                break;
-        }
-    }
-
-    /**
-     * 刪除節點
-     * @param {number} nodeId 節點ID
+     * Deletes a node and its associated connections.
+     * @param {number} nodeId - The ID of the node to delete.
      */
     function deleteNode(nodeId) {
-        // 移除節點DOM元素
+        console.log(`Deleting node ${nodeId}`);
+
+        // 1. Remove Node Element
         const nodeEl = document.querySelector(`.node-wrapper[data-id="${nodeId}"]`);
         if (nodeEl) {
             nodeEl.remove();
         }
 
-        // 移除該節點的所有連接
-        workflowData.connections = workflowData.connections.filter(conn =>
-            conn.source !== nodeId && conn.target !== nodeId);
+        // 2. Remove Associated Connections (Data & SVG)
+        const connectionsToRemove = workflowData.connections.filter(conn =>
+            conn.source === nodeId || conn.target === nodeId
+        );
+        connectionsToRemove.forEach(conn => {
+            const lineEl = document.querySelector(`.connection-line[data-id="${conn.id}"]`);
+            if (lineEl) lineEl.remove();
+            // Also remove 'connected' class from the other end of the connection
+             const otherNodeId = conn.source === nodeId ? conn.target : conn.source;
+             const otherNodeEl = document.querySelector(`.node-wrapper[data-id="${otherNodeId}"]`);
+             if (otherNodeEl) {
+                 const pointClass = conn.source === nodeId ? '.input' : '.output'; // If deleting source, clear target's input
+                 const point = otherNodeEl.querySelector(`.connection-point${pointClass}`);
+                 if(point) point.classList.remove('connected');
+             }
 
-        // 移除連接線DOM元素
-        updateConnections();
-
-        // 從工作流數據中移除節點
-        workflowData.nodes = workflowData.nodes.filter(node => node.id !== nodeId);
-    }
-
-    /**
-     * 運行節點
-     * @param {number} nodeId 節點ID
-     */
-    function runNode(nodeId) {
-        // 添加運行指示器
-        const nodeEl = document.querySelector(`.node-wrapper[data-id="${nodeId}"] .node`);
-        if (nodeEl) {
-            nodeEl.classList.add('running');
-
-            // 模擬運行結果
-            setTimeout(() => {
-                nodeEl.classList.remove('running');
-                nodeEl.classList.add('success');
-
-                // 清除成功指示器
-                setTimeout(() => {
-                    nodeEl.classList.remove('success');
-                }, 1500);
-            }, 1000);
-        }
-    }
-
-    /**
-     * 設置為起始節點
-     * @param {number} nodeId 節點ID
-     */
-    function setAsStartNode(nodeId) {
-        // 清除其他節點的起始節點標記
-        document.querySelectorAll('.node').forEach(node => {
-            node.classList.remove('start-node');
         });
 
-        // 標記新的起始節點
+        // 3. Remove Connections from Data Array
+        workflowData.connections = workflowData.connections.filter(conn =>
+            conn.source !== nodeId && conn.target !== nodeId
+        );
+
+        // 4. Remove Node from Data Array
+        workflowData.nodes = workflowData.nodes.filter(node => node.id !== nodeId);
+
+         // 5. Unset start node if it was the one deleted
+         if (workflowData.startNodeId === nodeId) {
+             workflowData.startNodeId = null;
+         }
+
+        console.log("Workflow data after deletion:", workflowData);
+        // No need to call updateConnections() as lines were removed individually
+    }
+
+    /**
+     * Simulates running a node (adds CSS classes).
+     * @param {number} nodeId - The ID of the node to run.
+     */
+    function runNode(nodeId) {
         const nodeEl = document.querySelector(`.node-wrapper[data-id="${nodeId}"] .node`);
-        if (nodeEl) {
-            nodeEl.classList.add('start-node');
-        }
+        if (!nodeEl) return;
+
+        // Clear previous status first
+        nodeEl.classList.remove('running', 'success', 'error');
+
+        console.log(`Running node ${nodeId}`);
+        nodeEl.classList.add('running');
+
+        // Simulate async operation
+        const runTime = 500 + Math.random() * 1000; // 0.5 - 1.5 seconds
+        const success = Math.random() > 0.2; // 80% chance of success
+
+        setTimeout(() => {
+            nodeEl.classList.remove('running');
+            if (success) {
+                nodeEl.classList.add('success');
+                console.log(`Node ${nodeId} finished successfully.`);
+                 // Auto-clear success state after a delay
+                 setTimeout(() => nodeEl.classList.remove('success'), 2000);
+            } else {
+                nodeEl.classList.add('error');
+                console.error(`Node ${nodeId} failed.`);
+                 // Error state might persist until user interaction or re-run
+            }
+        }, runTime);
     }
 
-    /**
-     * 顯示節點選擇器
-     * @param {number} x X坐標 (可選)
-     * @param {number} y Y坐標 (可選)
+     /**
+     * Sets a node as the designated start node for the workflow.
+     * @param {number} nodeId - The ID of the node to set as start node.
      */
-    function showNodeSelector(x, y) {
-        nodeSelector.style.display = 'block';
+    function setAsStartNode(nodeId) {
+        // Remove class from previous start node (if any)
+        if (workflowData.startNodeId) {
+            const prevStartNode = document.querySelector(`.node-wrapper[data-id="${workflowData.startNodeId}"] .node`);
+            if (prevStartNode) prevStartNode.classList.remove('start-node');
+        }
 
-        // 如果提供了坐標，設置節點選擇器的位置
-        if (x && y) {
-            // 計算合適的位置，確保選擇器不會超出視窗範圍
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
-            const selectorWidth = nodeSelector.clientWidth;
-            const selectorHeight = nodeSelector.clientHeight;
-
-            if (x + selectorWidth > windowWidth) {
-                x = windowWidth - selectorWidth - 10;
-            }
-
-            if (y + selectorHeight > windowHeight) {
-                y = windowHeight - selectorHeight - 10;
-            }
-
-            nodeSelector.style.left = x + 'px';
-            nodeSelector.style.top = y + 'px';
-            nodeSelector.style.transform = 'none';
+        // Add class to the new start node
+        const newStartNode = document.querySelector(`.node-wrapper[data-id="${nodeId}"] .node`);
+        if (newStartNode) {
+            newStartNode.classList.add('start-node');
+            workflowData.startNodeId = nodeId;
+            console.log(`Node ${nodeId} set as start node.`);
         } else {
-            // 居中顯示
-            nodeSelector.style.left = '50%';
-            nodeSelector.style.top = '50%';
-            nodeSelector.style.transform = 'translate(-50%, -50%)';
+             workflowData.startNodeId = null; // Node not found, reset
+             console.warn(`Could not find node ${nodeId} to set as start node.`);
         }
     }
 
+    /** Finds node data by ID */
+    function findNodeData(nodeId) {
+        return workflowData.nodes.find(n => n.id === nodeId);
+    }
+
+    /** Renders the entire workflow (nodes and connections) */
+    function renderWorkflow() {
+        // Clear existing nodes and lines
+        canvas.innerHTML = '';
+        // Render nodes first
+        workflowData.nodes.forEach(renderNode);
+        // Then render connections
+        updateAllConnections(); // Use the function that draws all lines
+    }
+
+
+    // --- Connection Management ---
+
     /**
-     * 隱藏節點選擇器
+     * Initiates the connection drawing process from an output point.
+     * @param {HTMLElement} outputPointElement - The output connection point element.
      */
-    function hideNodeSelector() {
-        nodeSelector.style.display = 'none';
+    function startConnection(outputPointElement) {
+        if (isConnecting) return; // Avoid starting multiple connections
+
+        isConnecting = true;
+        connectionStartPointElement = outputPointElement;
+        connectionStartPointElement.classList.add('active');
+
+        // Create temporary SVG line
+        const startRect = connectionStartPointElement.getBoundingClientRect();
+        const startX = startRect.left + startRect.width / 2 - canvasOffset.x;
+        const startY = startRect.top + startRect.height / 2 - canvasOffset.y;
+
+        tempConnectionLineSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        tempConnectionLineSvg.classList.add('connection-line', 'temp');
+        // No need for fixed width/height, use position and overflow: visible
+        tempConnectionLineSvg.style.position = 'absolute';
+        tempConnectionLineSvg.style.left = '0';
+        tempConnectionLineSvg.style.top = '0';
+        tempConnectionLineSvg.style.width = '100%'; // Cover canvas
+        tempConnectionLineSvg.style.height = '100%';// Cover canvas
+        tempConnectionLineSvg.style.pointerEvents = 'none'; // Ignore mouse events
+
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M${startX},${startY} L${startX},${startY}`);
+        // Styles are applied via CSS (.connection-line.temp path)
+        tempConnectionLineSvg.appendChild(path);
+
+        canvas.appendChild(tempConnectionLineSvg);
+
+        // Highlight potential input targets
+        highlightPotentialInputs(true);
+
+        console.log("Starting connection from node:", connectionStartPointElement.closest('.node-wrapper').dataset.id);
+    }
+
+     /**
+     * Updates the path of the temporary connection line during drag.
+     * @param {MouseEvent} e - The mouse event.
+     */
+    function updateTemporaryLine(e) {
+        if (!isConnecting || !connectionStartPointElement || !tempConnectionLineSvg) return;
+
+        const path = tempConnectionLineSvg.querySelector('path');
+        if (!path) return;
+
+        const startRect = connectionStartPointElement.getBoundingClientRect();
+        const startX = startRect.left + startRect.width / 2 - canvasOffset.x;
+        const startY = startRect.top + startRect.height / 2 - canvasOffset.y;
+
+        let endX = e.clientX - canvasOffset.x;
+        let endY = e.clientY - canvasOffset.y;
+
+         // If snapping to a point, use its center
+         if (currentHoveredInputPoint) {
+             const endRect = currentHoveredInputPoint.getBoundingClientRect();
+             endX = endRect.left + endRect.width / 2 - canvasOffset.x;
+             endY = endRect.top + endRect.height / 2 - canvasOffset.y;
+         }
+
+
+        // Calculate control points for Bezier curve
+        const deltaX = Math.abs(endX - startX);
+        // Make curve gentler for short horizontal distances
+        const controlPointOffset = Math.max(deltaX * 0.5, 30);
+
+        const d = `M${startX},${startY} C${startX + controlPointOffset},${startY} ${endX - controlPointOffset},${endY} ${endX},${endY}`;
+        path.setAttribute('d', d);
+    }
+
+     /**
+      * Handles snapping visualization during connection drag.
+      * @param {MouseEvent} e - The mouse move event.
+      */
+     function handleConnectionSnapping(e) {
+         if (!isConnecting) return;
+
+         const snapDistance = 25; // Pixel radius for snapping
+         let foundSnapTarget = false;
+
+         document.querySelectorAll('.connection-point.input').forEach(inputPoint => {
+             // Don't snap to the input of the starting node
+             if (inputPoint.closest('.node-wrapper') === connectionStartPointElement.closest('.node-wrapper')) {
+                 return;
+             }
+             // Only check highlighted points (potential targets)
+              if (!inputPoint.classList.contains('highlight')) {
+                 // Exception: if it's the currently hovered one, allow checking
+                 if(inputPoint !== currentHoveredInputPoint) return;
+              }
+
+
+             const rect = inputPoint.getBoundingClientRect();
+             const pointCenterX = rect.left + rect.width / 2;
+             const pointCenterY = rect.top + rect.height / 2;
+
+             const distance = Math.sqrt(
+                 Math.pow(e.clientX - pointCenterX, 2) +
+                 Math.pow(e.clientY - pointCenterY, 2)
+             );
+
+             if (distance < snapDistance) {
+                  if (!inputPoint.classList.contains('highlight-snap')) {
+                     // Remove snap from previous point if any
+                     if(currentHoveredInputPoint && currentHoveredInputPoint !== inputPoint) {
+                         currentHoveredInputPoint.classList.remove('highlight-snap');
+                     }
+                     // Add snap to this point
+                     inputPoint.classList.add('highlight-snap');
+                     currentHoveredInputPoint = inputPoint;
+                  }
+                 foundSnapTarget = true;
+             } else {
+                  if (inputPoint.classList.contains('highlight-snap')) {
+                     inputPoint.classList.remove('highlight-snap');
+                     if(currentHoveredInputPoint === inputPoint) {
+                         currentHoveredInputPoint = null;
+                     }
+                  }
+             }
+         });
+
+         // If no target is found by distance check, ensure currentHoveredInput is cleared
+         // (This handles moving away from a snapped point)
+         // This check is implicitly handled by the logic within the loop now.
+     }
+
+
+    /**
+     * Finalizes the connection attempt on mouse up.
+     * @param {MouseEvent} e - The mouse event.
+     */
+    function finalizeConnection(e) {
+        let targetInputPoint = null;
+
+        // Priority 1: Check if mouse is released over the currently snapped point
+        if (currentHoveredInputPoint && currentHoveredInputPoint.classList.contains('highlight-snap')) {
+            targetInputPoint = currentHoveredInputPoint;
+             console.log("Connecting via snapped point:", targetInputPoint.closest('.node-wrapper').dataset.id);
+        } else {
+            // Priority 2: Check elements directly under the cursor
+            const elementsUnderCursor = document.elementsFromPoint(e.clientX, e.clientY);
+            targetInputPoint = elementsUnderCursor.find(el =>
+                el.classList.contains('connection-point') &&
+                el.classList.contains('input') &&
+                el.classList.contains('highlight') && // Must be a valid target
+                el.closest('.node-wrapper') !== connectionStartPointElement.closest('.node-wrapper')
+            );
+             if(targetInputPoint) {
+                console.log("Connecting via elementsFromPoint:", targetInputPoint.closest('.node-wrapper').dataset.id);
+             }
+        }
+
+
+        if (targetInputPoint) {
+            // --- Create the Connection ---
+            const sourceNodeId = parseInt(connectionStartPointElement.closest('.node-wrapper').dataset.id);
+            const targetNodeId = parseInt(targetInputPoint.closest('.node-wrapper').dataset.id);
+
+            // Check if connection already exists
+            const exists = workflowData.connections.some(conn =>
+                conn.source === sourceNodeId && conn.target === targetNodeId
+            );
+
+            if (!exists) {
+                const connectionData = {
+                    id: `conn_${Date.now()}_${Math.random().toString(16).slice(2)}`, // More unique ID
+                    source: sourceNodeId,
+                    target: targetNodeId
+                };
+                workflowData.connections.push(connectionData);
+                createConnectionLine(connectionData); // Draw the permanent line
+                console.log("Connection created:", connectionData);
+
+                // Mark points as connected
+                connectionStartPointElement.classList.add('connected');
+                targetInputPoint.classList.add('connected');
+
+                 // Brief visual feedback on the line
+                 const lineEl = document.querySelector(`.connection-line[data-id="${connectionData.id}"] path`);
+                 if (lineEl) {
+                     lineEl.style.stroke = '#ff55aa'; // Pink flash
+                     setTimeout(() => {
+                         lineEl.style.stroke = ''; // Revert to CSS default (#aaa)
+                     }, 300);
+                 }
+
+            } else {
+                console.log("Connection already exists.");
+                // Optionally provide user feedback here
+            }
+        } else {
+            console.log("Connection cancelled - no valid target.");
+        }
+
+        // --- Cleanup ---
+        cancelConnection();
+    }
+
+
+    /**
+     * Cleans up the temporary connection state.
+     */
+    function cancelConnection() {
+        if (tempConnectionLineSvg) {
+            tempConnectionLineSvg.remove();
+            tempConnectionLineSvg = null;
+        }
+        if (connectionStartPointElement) {
+            connectionStartPointElement.classList.remove('active');
+            connectionStartPointElement = null;
+        }
+        highlightPotentialInputs(false); // Remove highlights
+        if (currentHoveredInputPoint) {
+             currentHoveredInputPoint.classList.remove('highlight-snap');
+             currentHoveredInputPoint = null;
+        }
+        isConnecting = false;
+        console.log("Connection process ended/cancelled.");
     }
 
     /**
-     * 更新畫布偏移
+     * Creates the visual SVG line for a connection.
+     * @param {object} connectionData - The connection data {id, source, target}.
      */
-    function updateCanvasOffset() {
-        const rect = canvas.getBoundingClientRect();
-        canvasOffset = { x: rect.left, y: rect.top };
+    function createConnectionLine(connectionData) {
+         const sourceNodeEl = document.querySelector(`.node-wrapper[data-id="${connectionData.source}"]`);
+         const targetNodeEl = document.querySelector(`.node-wrapper[data-id="${connectionData.target}"]`);
+
+         if (!sourceNodeEl || !targetNodeEl) {
+             console.warn(`Cannot draw line, node element not found for connection:`, connectionData);
+             return;
+         }
+
+         const outputPoint = sourceNodeEl.querySelector('.connection-point.output');
+         const inputPoint = targetNodeEl.querySelector('.connection-point.input');
+
+         if (!outputPoint || !inputPoint) {
+             console.warn(`Cannot draw line, connection points not found for connection:`, connectionData);
+             return;
+         }
+
+         // Create SVG container for the line if it doesn't exist for this connection ID
+         let svgLine = document.querySelector(`.connection-line[data-id="${connectionData.id}"]`);
+         if (!svgLine) {
+             svgLine = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+             svgLine.classList.add('connection-line');
+             svgLine.dataset.id = connectionData.id;
+             svgLine.dataset.source = connectionData.source;
+             svgLine.dataset.target = connectionData.target;
+             // Position and size set by CSS to cover canvas
+             svgLine.style.pointerEvents = 'none'; // SVG container doesn't block clicks
+             svgLine.style.overflow = 'visible'; // Allow path outside bounds
+
+
+             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+             path.setAttribute('d', 'M0,0 L0,0'); // Initial dummy path
+             // Styles and pointer-events set by CSS (.connection-line path)
+             svgLine.appendChild(path);
+             canvas.appendChild(svgLine);
+
+             // Add click listener to the PATH for deletion
+             path.addEventListener('click', (e) => {
+                 e.stopPropagation(); // Prevent canvas click
+                 if (confirm(`Delete connection between node ${connectionData.source} and ${connectionData.target}?`)) {
+                     deleteConnection(connectionData.id);
+                 }
+             });
+         }
+
+         // Update the path geometry
+         updateSingleConnectionLine(connectionData.id);
     }
-});
+
+     /**
+      * Updates the geometry (d attribute) of a single connection line SVG path.
+      * @param {string} connectionId - The ID of the connection to update.
+      */
+     function updateSingleConnectionLine(connectionId) {
+         const svgLine = document.querySelector(`.connection-line[data-id="${connectionId}"]`);
+         const path = svgLine?.querySelector('path');
+         if (!path) return; // Line might have been deleted
+
+         const connData = workflowData.connections.find(c => c.id === connectionId);
+         if (!connData) return; // Connection data removed
+
+         const sourceNodeEl = document.querySelector(`.node-wrapper[data-id="${connData.source}"]`);
+         const targetNodeEl = document.querySelector(`.node-wrapper[data-id="${connData.target}"]`);
+         if (!sourceNodeEl || !targetNodeEl) return; // Node removed
+
+         const outputPoint = sourceNodeEl.querySelector('.connection-point.output');
+         const inputPoint = targetNodeEl.querySelector('.connection-point.input');
+         if (!outputPoint || !inputPoint) return; // Points not found
+
+         // Calculate positions relative to the canvas
+         const outputRect = outputPoint.getBoundingClientRect();
+         const inputRect = inputPoint.getBoundingClientRect();
+
+         const startX = outputRect.left + outputRect.width / 2 - canvasOffset.x;
+         const startY = outputRect.top + outputRect.height / 2 - canvasOffset.y;
+         const endX = inputRect.left + inputRect.width / 2 - canvasOffset.x;
+         const endY = inputRect.top + inputRect.height / 2 - canvasOffset.y;
+
+         // Bezier curve calculation
+         const deltaX = Math.abs(endX - startX);
+         const controlPointOffset = Math.max(deltaX * 0.5, 30);
+
+         const d = `M${startX},${startY} C${startX + controlPointOffset},${startY} ${endX - controlPointOffset},${endY} ${endX},${endY}`;
+         path.setAttribute('d', d);
+     }
+
+
+    /**
+     * Updates all connection lines associated with a specific node.
+     * @param {number} nodeId - The ID of the node whose connections need updating.
+     */
+    function updateConnectionsForNode(nodeId) {
+        workflowData.connections.forEach(conn => {
+            if (conn.source === nodeId || conn.target === nodeId) {
+                updateSingleConnectionLine(conn.id);
+            }
+        });
+    }
+
+     /**
+      * Redraws ALL connection lines based on current workflowData.
+      */
+     function updateAllConnections() {
+         // Remove potentially orphaned lines first (if nodes were deleted without line cleanup)
+          document.querySelectorAll('.connection-line:not(.temp)').forEach(lineSvg => {
+              const connId = lineSvg.dataset.id;
+              if (!workflowData.connections.some(c => c.id === connId)) {
+                  lineSvg.remove();
+              }
+          });
+         // Create or update all connections in the data
+         workflowData.connections.forEach(conn => {
+             createConnectionLine(conn); // This will either create or update the path
+         });
+     }
+
+    /**
+     * Deletes a specific connection.
+     * @param {string} connectionId - The ID of the connection to delete.
+     */
+    function deleteConnection(connectionId) {
+        console.log(`Deleting connection ${connectionId}`);
+
+        const connectionIndex = workflowData.connections.findIndex(conn => conn.id === connectionId);
+        if (connectionIndex === -1) return; // Not found
+
+        const connectionData = workflowData.connections[connectionIndex];
+
+        // 1. Remove SVG Line
+        const lineEl = document.querySelector(`.connection-line[data-id="${connectionId}"]`);
+        if (lineEl) lineEl.remove();
+
+        // 2. Remove 'connected' class from points
+        const sourceNodeEl = document.querySelector(`.node-wrapper[data-id="${connectionData.source}"]`);
+        const targetNodeEl = document.querySelector(`.node-wrapper[data-id="${connectionData.target}"]`);
+        if (sourceNodeEl) sourceNodeEl.querySelector('.connection-point.output')?.classList.remove('connected');
+        if (targetNodeEl) targetNodeEl.querySelector('.connection-point.input')?.classList.remove('connected');
+
+        // 3. Remove connection from data
+        workflowData.connections.splice(connectionIndex, 1);
+
+        console.log("Workflow connections after deletion:", workflowData.connections);
+    }
+
+
+    /**
+     * Adds or removes the 'highlight' class from potential input points.
+     * @param {boolean} show - True to add highlight, false to remove.
+     */
+    function highlightPotentialInputs(show) {
+         document.querySelectorAll('.connection-point.input').forEach(point => {
+             // Don't highlight the input on the node we are dragging from
+             if (connectionStartPointElement && point.closest('.node-wrapper') === connectionStartPointElement.closest('.node-wrapper')) {
+                 return;
+             }
+             if (show) {
+                 point.classList.add('highlight');
+             } else {
+                 point.classList.remove('highlight');
+                 point.classList.remove('highlight-snap'); // Also remove snap highlight
+             }
+         });
+         // Reset the tracked snapped point if highlights are removed
+         if (!show) {
+             currentHoveredInputPoint = null;
+         }
+    }
+
+
+    // --- Context Menu ---
+
+    function showContextMenu(x, y, nodeId) {
+        hideContextMenu(); // Hide previous first
+
+        // Adjust position if too close to edge
+        const menuWidth = 150; // Approximate width
+        const menuHeight = 150; // Approximate height
+        if (x + menuWidth > window.innerWidth) {
+            x = window.innerWidth - menuWidth - 5;
+        }
+        if (y + menuHeight > window.innerHeight) {
+            y = window.innerHeight - menuHeight - 5;
+        }
+
+
+        contextMenu.style.display = 'block';
+        contextMenu.style.left = `${x}px`;
+        contextMenu.style.top = `${y}px`;
+        contextMenu.dataset.nodeId = nodeId; // Store node ID on the menu
+
+        // Attach listeners here to ensure they are fresh for this instance
+        contextMenu.querySelectorAll('li').forEach(item => {
+            // Remove old listener before adding new one
+            item.replaceWith(item.cloneNode(true));
+        });
+        contextMenu.querySelectorAll('li').forEach(item => {
+             item.addEventListener('click', handleContextMenuClick);
+        });
+
+        console.log(`Context menu shown for node ${nodeId} at (${x}, ${y})`);
+    }
+
+    function hideContextMenu() {
+        if (contextMenu.style.display === 'block') {
+             contextMenu.style.display = 'none';
+             contextMenu.removeAttribute('data-node-id');
+             console.log("Context menu hidden");
+        }
+    }
+
+    function handleContextMenuClick(e) {
+        const action = e.target.dataset.action;
+        const nodeId = parseInt(contextMenu.dataset.nodeId);
+
+        if (!action || isNaN(nodeId)) {
+            console.error("Context menu action or nodeId missing");
+            hideContextMenu();
+            return;
+        }
+
+        console.log(`Context action: ${action} on node ${nodeId}`);
+
+        switch (action) {
+            case 'delete':
+                if (confirm(`Are you sure you want to delete node ${nodeId}?`)) {
+                    deleteNode(nodeId);
+                }
+                break;
+            case 'run-node':
+                runNode(nodeId);
+                break;
+            case 'set-start-node':
+                setAsStartNode(nodeId);
+                break;
+             case 'copy': // Placeholder
+                 console.log("Copy node action (not implemented)");
+                 alert("Copy functionality not yet implemented.");
+                 break;
+            // Add other actions here
+        }
+        hideContextMenu(); // Hide menu after action
+    }
+
+
+    // --- Node Selector ---
+
+    function showNodeSelector(x, y, centered = false) {
+         hideNodeSelector(); // Hide previous first
+         nodeSelector.style.display = 'flex'; // Use flex display now
+         nodeSearchInput.value = ''; // Clear search
+         filterNodeSelector(); // Show all nodes initially
+
+         nodeSelector.dataset.centered = centered; // Mark if opened via button
+
+         if (centered) {
+             // Centered positioning is handled by CSS transform
+             nodeSelector.style.left = '50%';
+             nodeSelector.style.top = '50%';
+             nodeSelector.style.transform = 'translate(-50%, -50%)';
+         } else if (x !== null && y !== null) {
+             // Position near mouse click (adjust for menu size)
+             const selectorWidth = nodeSelector.offsetWidth;
+             const selectorHeight = nodeSelector.offsetHeight;
+             let posX = x + 10;
+             let posY = y + 10;
+
+             // Keep within viewport
+             if (posX + selectorWidth > window.innerWidth) {
+                 posX = window.innerWidth - selectorWidth - 10;
+             }
+              if (posY + selectorHeight > window.innerHeight) {
+                 posY = window.innerHeight - selectorHeight - 10;
+             }
+             posX = Math.max(10, posX);
+             posY = Math.max(10, posY);
+
+
+             nodeSelector.style.left = `${posX}px`;
+             nodeSelector.style.top = `${posY}px`;
+             nodeSelector.style.transform = 'none'; // Override centered transform
+         } else {
+             // Default to center if coordinates are somehow null/undefined
+             nodeSelector.style.left = '50%';
+             nodeSelector.style.top = '50%';
+             nodeSelector.style.transform = 'translate(-50%, -50%)';
+         }
+
+        nodeSearchInput.focus(); // Focus the search input
+        console.log("Node selector shown");
+    }
+
+    function hideNodeSelector() {
+        if(nodeSelector.style.display !== 'none') {
+             nodeSelector.style.display = 'none';
+             nodeSelector.removeAttribute('data-centered');
+             console.log("Node selector hidden");
+        }
+    }
+
+    function filterNodeSelector() {
+        const searchTerm = nodeSearchInput.value.toLowerCase().trim();
+        const items = nodeSelector.querySelectorAll('.node-select-item');
+        const categories = nodeSelector.querySelectorAll('.category');
+
+        items.forEach(item => {
+            const type = item.dataset.type.toLowerCase();
+            const name = item.querySelector('span').textContent.toLowerCase();
+            const matches = type.includes(searchTerm) || name.includes(searchTerm);
+            item.style.display = matches ? 'flex' : 'none';
+        });
+
+        // Optionally hide categories with no visible items
+        categories.forEach(category => {
+             const visibleItems = category.querySelectorAll('.node-select-item[style*="display: flex"]');
+             // const visibleItems = Array.from(category.querySelectorAll('.node-select-item')).filter(it => it.style.display !== 'none');
+             category.style.display = visibleItems.length > 0 ? 'block' : 'none';
+        });
+    }
+
+
+    // --- Workflow Export ---
+
+    function formatWorkflowForN8n() {
+        const n8nWorkflow = {
+            nodes: [],
+            connections: {},
+            settings: { // Basic settings example
+                 executionOrder: workflowData.startNodeId ? [String(workflowData.startNodeId)] : [] // Requires more logic for full order
+             },
+            staticData: null
+        };
+
+        // Format Nodes
+        workflowData.nodes.forEach(node => {
+            n8nWorkflow.nodes.push({
+                parameters: node.parameters || {}, // Use stored params or empty object
+                id: String(node.id), // n8n uses string IDs
+                name: node.name || `${node.type.charAt(0).toUpperCase() + node.slice(1)} ${node.id}`, // Use stored name or generate
+                type: `n8n-nodes-base.${node.type}`, // Basic n8n type format (might need adjustment for specific nodes)
+                typeVersion: 1, // Default version
+                position: [node.position.x, node.position.y],
+                notesInFlow: !!node.notes, // Boolean flag if notes exist
+                notes: node.notes || '',
+                // credentials: {} // Add credentials if needed later
+            });
+        });
+
+        // Format Connections
+        workflowData.connections.forEach(conn => {
+            const sourceIdStr = String(conn.source);
+            const targetIdStr = String(conn.target);
+
+            if (!n8nWorkflow.connections[sourceIdStr]) {
+                n8nWorkflow.connections[sourceIdStr] = {};
+            }
+            if (!n8nWorkflow.connections[sourceIdStr]['main']) {
+                 n8nWorkflow.connections[sourceIdStr]['main'] = [];
+            }
+
+            // Avoid duplicates (though our model shouldn't allow them)
+             if (!n8nWorkflow.connections[sourceIdStr]['main'].some(c => c.node === targetIdStr)) {
+                 n8nWorkflow.connections[sourceIdStr]['main'].push({
+                     node: targetIdStr,
+                     input: 'main' // Assuming single 'main' input/output for now
+                 });
+             }
+        });
+
+        return n8nWorkflow;
+    }
+
+    function showExportModal() {
+        const n8nJson = formatWorkflowForN8n();
+        exportTextarea.value = JSON.stringify(n8nJson, null, 2); // Pretty print
+        exportModal.style.display = 'block';
+    }
+
+    function hideExportModal() {
+        exportModal.style.display = 'none';
+    }
+
+    function copyExportJsonToClipboard() {
+        exportTextarea.select();
+        exportTextarea.setSelectionRange(0, 99999); // For mobile devices
+
+        try {
+            const successful = document.execCommand('copy');
+            const msg = successful ? 'Copied to clipboard!' : 'Copy failed!';
+            alert(msg); // Simple feedback
+            console.log('Copy attempt:', msg);
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+            alert('Could not copy text. Please copy manually.');
+        }
+        // Deselect text
+        window.getSelection()?.removeAllRanges();
+    }
+
+
+    // --- Workflow Load/Save (Placeholders) ---
+    function saveWorkflow() {
+        // Example: Save to localStorage
+        // localStorage.setItem('myWorkflowData', JSON.stringify(workflowData));
+        // console.log("Workflow saved.");
+        alert("Save functionality not implemented yet.");
+    }
+
+    function loadWorkflow() {
+         // Example: Load from localStorage
+        // const savedData = localStorage.getItem('myWorkflowData');
+        // if (savedData) {
+        //     const parsedData = JSON.parse(savedData);
+        //     workflowData.nodes = parsedData.nodes || [];
+        //     workflowData.connections = parsedData.connections || [];
+        //     workflowData.nextNodeId = parsedData.nextNodeId || 1;
+        //     workflowData.startNodeId = parsedData.startNodeId || null;
+        //     console.log("Workflow loaded.");
+        //     renderWorkflow(); // Render the loaded data
+        // } else {
+        //     console.log("No saved workflow found.");
+        // }
+    }
+
+    // --- Start the Application ---
+    initializeApp();
+
+     // Example: Add a few initial nodes for testing
+     const node1 = addNode('manual', 100, 150);
+     const node2 = addNode('set', 400, 100);
+     const node3 = addNode('if', 400, 250);
+     const node4 = addNode('http', 700, 150);
+     setAsStartNode(node1.id); // Set node 1 as the start
+
+
+}); // End DOMContentLoaded

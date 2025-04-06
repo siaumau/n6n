@@ -4,17 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>工作流自動化工具</title>
-
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="main.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+
 </head>
 <body>
     <div class="app-container">
-        <!-- 側邊欄 -->
+        <!-- 側邊欄 (Sidebar) -->
         <div class="sidebar">
             <div class="logo">
                 <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCI+PHBhdGggZD0iTTIwIDQwYzExLjA0NiAwIDIwLTguOTU0IDIwLTIwUzMxLjA0NiAwIDIwIDBTMCA4Ljk1NCAwIDIwczguOTU0IDIwIDIwIDIweiIgZmlsbD0iI2ZmNTVhYSIvPjxwYXRoIGQ9Ik0yMCAyNWMtMi43NjMgMC01LTIuMjM4LTUtNXMyLjIzNy01IDUtNSA1IDIuMjM4IDUgNS0yLjIzNyA1LTUgNXoiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNMzAgMTVjLTIuNzYzIDAtNS0yLjIzOC01LTVzMi4yMzctNSA1LTUgNSAyLjIzOCA1IDUtMi4yMzcgNS01IDV6IiBmaWxsPSIjZmZmIi8+PHBhdGggZD0iTTEwIDE1Yy0yLjc2MyAwLTUtMi4yMzgtNS01czIuMjM3LTUgNS01IDUgMi4yMzggNSA1LTIuMjM3IDUtNSA1eiIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0zMCAzNWMtMi43NjMgMC01LTIuMjM4LTUtNXMyLjIzNy01IDUtNSA1IDIuMjM4IDUgNS0yLjIzNyA1LTUgNXoiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNMTAgMzVjLTIuNzYzIDAtNS0yLjIzOC01LTVzMi4yMzctNSA1LTUgNSAyLjIzOCA1IDUtMi4yMzcgNS01IDV6IiBmaWxsPSIjZmZmIi8+PC9zdmc+" alt="Logo" class="logo-img">
-                <span>n8n</span>
+                <span>MyFlow</span> <!-- Changed name slightly -->
             </div>
             <nav>
                 <ul>
@@ -24,16 +24,19 @@
                     <li><i class="fas fa-question-circle"></i> Help</li>
                 </ul>
             </nav>
+             <button id="export-button" class="control-btn export-btn">
+                <i class="fas fa-download"></i> Export JSON
+            </button>
         </div>
 
-        <!-- 主要內容區 -->
+        <!-- 主要內容區 (Main Content Area) -->
         <div class="main-content">
-            <!-- 頂部工具欄 -->
+            <!-- 頂部工具欄 (Top Toolbar) -->
             <div class="top-toolbar">
                 <div class="left-controls">
                     <button class="add-btn"><i class="fas fa-plus"></i></button>
                     <div class="workflow-title">
-                        <span>My workflow 2</span>
+                        <span>My workflow</span> <!-- Changed name slightly -->
                         <button class="tag-btn">+ Add tag</button>
                     </div>
                 </div>
@@ -51,87 +54,130 @@
                     <button class="control-btn"><i class="fas fa-ellipsis-h"></i></button>
                     <button class="control-btn">
                         <i class="fas fa-star"></i>
-                        <span>75,153</span>
+                        <span>0</span> <!-- Initial stars -->
                     </button>
                 </div>
             </div>
 
-            <!-- 工作區工具欄 -->
+            <!-- 工作區工具欄 (Workspace Toolbar) -->
             <div class="workspace-toolbar">
                 <div class="tabs">
                     <button class="tab active">Editor</button>
                     <button class="tab">Executions</button>
                 </div>
-                <button class="zoom-btn"><i class="fas fa-plus"></i></button>
+                <button class="zoom-btn"><i class="fas fa-search-plus"></i></button> <!-- Changed icon -->
             </div>
 
-            <!-- 工作區畫布 -->
+            <!-- 工作區畫布 (Canvas) -->
             <div class="canvas" id="workflow-canvas">
-                <!-- 節點將在這裡被動態添加 -->
+                <!-- Nodes will be dynamically added here -->
+                <!-- Connection lines (SVG) will be added here -->
             </div>
         </div>
     </div>
 
-    <!-- 節點右鍵選單 -->
+    <!-- 節點右鍵選單 (Node Context Menu) -->
     <div class="context-menu" id="node-context-menu">
         <ul>
-            <li>Copy</li>
-            <li>Delete</li>
-            <li>Run node</li>
-            <li>Set as start node</li>
+            <li data-action="copy">Copy</li>
+            <li data-action="delete">Delete</li>
+            <li data-action="run-node">Run node</li>
+            <li data-action="set-start-node">Set as start node</li>
+            <!-- <li data-action="edit">Edit</li> Added double-click instead -->
         </ul>
     </div>
 
-    <!-- 節點選擇對話框 -->
+    <!-- 節點選擇對話框 (Node Selector Dialog) -->
     <div class="node-selector" id="node-selector">
         <div class="selector-header">
             <h3>Add Node</h3>
-            <input type="text" placeholder="Search nodes...">
+            <input type="text" placeholder="Search nodes..." id="node-search">
             <button class="close-btn"><i class="fas fa-times"></i></button>
         </div>
         <div class="node-categories">
-            <div class="category">
+            <!-- Categories and nodes will be populated or filtered by JS if needed -->
+             <div class="category">
                 <h4>Triggers</h4>
                 <div class="nodes-grid">
-                    <div class="node" data-type="webhook">
+                    <div class="node-select-item" data-type="webhook">
                         <i class="fas fa-bolt"></i>
                         <span>Webhook</span>
                     </div>
-                    <div class="node" data-type="schedule">
+                    <div class="node-select-item" data-type="schedule">
                         <i class="fas fa-clock"></i>
                         <span>Schedule</span>
+                    </div>
+                     <div class="node-select-item" data-type="manual">
+                        <i class="fas fa-play"></i>
+                        <span>Manual</span>
                     </div>
                 </div>
             </div>
             <div class="category">
                 <h4>Database</h4>
                 <div class="nodes-grid">
-                    <div class="node" data-type="mysql">
+                    <div class="node-select-item" data-type="mysql">
                         <i class="fas fa-database"></i>
                         <span>MySQL</span>
                     </div>
-                    <div class="node" data-type="postgres">
+                    <div class="node-select-item" data-type="postgres">
                         <i class="fas fa-database"></i>
                         <span>Postgres</span>
+                    </div>
+                    <div class="node-select-item" data-type="sqlite">
+                        <i class="fas fa-database"></i>
+                        <span>SQLite</span>
                     </div>
                 </div>
             </div>
             <div class="category">
                 <h4>Utilities</h4>
                 <div class="nodes-grid">
-                    <div class="node" data-type="datetime">
+                     <div class="node-select-item" data-type="datetime">
                         <i class="fas fa-calendar-alt"></i>
                         <span>Date & Time</span>
                     </div>
-                    <div class="node" data-type="function">
+                    <div class="node-select-item" data-type="function">
                         <i class="fas fa-code"></i>
                         <span>Function</span>
+                    </div>
+                    <div class="node-select-item" data-type="set">
+                        <i class="fas fa-sliders-h"></i>
+                        <span>Set</span>
+                    </div>
+                     <div class="node-select-item" data-type="if">
+                        <i class="fas fa-code-branch"></i>
+                        <span>IF</span>
+                    </div>
+                </div>
+            </div>
+             <div class="category">
+                <h4>Communication</h4>
+                <div class="nodes-grid">
+                     <div class="node-select-item" data-type="email">
+                        <i class="fas fa-envelope"></i>
+                        <span>Email</span>
+                    </div>
+                    <div class="node-select-item" data-type="http">
+                        <i class="fas fa-globe"></i>
+                        <span>HTTP Request</span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-<script src="main.js"></script>
 
+    <!-- Export Modal (Optional, better than alert) -->
+    <div id="export-modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="close-export-modal">×</span>
+        <h2>Exported Workflow (n8n compatible JSON)</h2>
+        <textarea id="export-textarea" readonly></textarea>
+        <button id="copy-export-json">Copy to Clipboard</button>
+      </div>
+    </div>
+
+
+<script src="main.js"></script>
 </body>
 </html>

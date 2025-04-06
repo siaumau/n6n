@@ -9,7 +9,7 @@
 body {
     background-color: #f8f9fa;
     color: #333;
-    overflow: hidden;
+    overflow: hidden; /* Prevent body scroll */
 }
 
 /* 應用容器 */
@@ -21,12 +21,13 @@ body {
 
 /* 側邊欄 */
 .sidebar {
-    width: 180px;
+    width: 200px; /* Slightly wider */
     background-color: #fff;
     border-right: 1px solid #e0e0e0;
     padding: 15px 0;
     display: flex;
     flex-direction: column;
+    z-index: 20; /* Ensure sidebar elements are above canvas grid */
 }
 
 .logo {
@@ -50,6 +51,7 @@ body {
 
 nav ul {
     list-style: none;
+    flex-grow: 1; /* Allow nav to take available space */
 }
 
 nav li {
@@ -58,31 +60,59 @@ nav li {
     display: flex;
     align-items: center;
     color: #666;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, color 0.2s;
+    font-size: 14px;
 }
 
 nav li i {
-    margin-right: 10px;
+    margin-right: 12px; /* Slightly more space */
     width: 20px;
     text-align: center;
+    color: #888; /* Icon color */
+    transition: color 0.2s;
 }
 
 nav li:hover {
     background-color: #f0f0f0;
+    color: #111;
 }
+nav li:hover i {
+    color: #ff55aa;
+}
+
 
 nav li.active {
     color: #ff55aa;
     font-weight: 500;
-    background-color: #f8f8f8;
+    background-color: #fdf5f9; /* Lighter pink background */
+    border-right: 3px solid #ff55aa; /* Active indicator */
+    padding-right: 12px; /* Adjust padding */
 }
+nav li.active i {
+    color: #ff55aa;
+}
+
+.export-btn {
+    margin: 20px 15px 10px 15px; /* Add margin */
+    width: calc(100% - 30px);
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+}
+.export-btn:hover {
+     background-color: #e0e0e0;
+}
+.export-btn i {
+    margin-right: 8px;
+}
+
 
 /* 主要內容區 */
 .main-content {
     flex: 1;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow: hidden; /* Prevent overflow */
+    position: relative; /* Needed for absolute positioning of canvas elements */
 }
 
 /* 頂部工具欄 */
@@ -93,69 +123,86 @@ nav li.active {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0 15px;
+    padding: 0 20px; /* More padding */
+    z-index: 20; /* Above canvas */
 }
 
 .left-controls, .right-controls {
     display: flex;
     align-items: center;
+    gap: 10px; /* Add gap between controls */
 }
 
 .add-btn {
-    width: 36px;
-    height: 36px;
+    width: 32px; /* Slightly smaller */
+    height: 32px;
     border-radius: 50%;
     background-color: #fff;
     border: 1px solid #ccc;
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-right: 15px;
+    /* margin-right: 15px; */ /* Using gap now */
     cursor: pointer;
     transition: all 0.2s;
+    color: #555;
 }
 
 .add-btn:hover {
     background-color: #f0f0f0;
+    border-color: #bbb;
+    color: #000;
+}
+.add-btn i {
+    font-size: 14px;
 }
 
 .workflow-title {
     display: flex;
     align-items: center;
-    font-size: 16px;
+    font-size: 18px; /* Larger title */
+    font-weight: 500;
+}
+.workflow-title span {
+    margin-right: 8px;
 }
 
 .tag-btn {
     background: none;
     border: none;
     color: #888;
-    margin-left: 10px;
-    font-size: 13px;
+    /* margin-left: 10px; */ /* Using gap now */
+    font-size: 12px;
     cursor: pointer;
+    padding: 3px 6px;
+    border-radius: 4px;
+    border: 1px dashed #ccc;
 }
 
 .tag-btn:hover {
     color: #ff55aa;
+    border-color: #ff55aa;
+    background-color: #fff0f7;
 }
 
 /* 開關控制 */
 .switch-container {
     display: flex;
     align-items: center;
-    margin-right: 15px;
+    /* margin-right: 15px; */ /* Using gap now */
 }
 
 .switch-container span {
     margin-right: 8px;
     color: #666;
-    font-size: 14px;
+    font-size: 13px; /* Slightly smaller */
 }
 
 .switch {
     position: relative;
     display: inline-block;
-    width: 40px;
-    height: 20px;
+    width: 34px; /* Smaller switch */
+    height: 18px;
 }
 
 .switch input {
@@ -178,8 +225,8 @@ nav li.active {
 .slider:before {
     position: absolute;
     content: "";
-    height: 16px;
-    width: 16px;
+    height: 14px; /* Smaller knob */
+    width: 14px;
     left: 2px;
     bottom: 2px;
     background-color: white;
@@ -187,7 +234,7 @@ nav li.active {
 }
 
 .slider.round {
-    border-radius: 20px;
+    border-radius: 18px; /* Match height */
 }
 
 .slider.round:before {
@@ -195,46 +242,61 @@ nav li.active {
 }
 
 input:checked + .slider {
-    background-color: #ff55aa;
+    background-color: #4caf50; /* Use Green for active state */
+}
+input:checked + .switch-container span {
+    color: #4caf50; /* Change text color too */
 }
 
 input:checked + .slider:before {
-    transform: translateX(20px);
+    transform: translateX(16px); /* Adjust translation */
 }
 
 .control-btn {
-    background: none;
+    background: #fff;
     border: 1px solid #ddd;
     padding: 6px 12px;
     border-radius: 4px;
-    margin-left: 8px;
+    /* margin-left: 8px; */ /* Using gap now */
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 13px; /* Smaller font */
     transition: all 0.2s;
+    color: #555;
 }
 
 .control-btn:hover {
-    background-color: #f0f0f0;
+    background-color: #f5f5f5;
+    border-color: #ccc;
+    color: #111;
 }
 
 .control-btn i {
     margin-right: 5px;
+    color: #888; /* Icon color */
 }
+.control-btn:hover i {
+    color: #555;
+}
+
 
 .control-btn.highlight {
     background-color: #ff55aa;
     color: white;
     border-color: #ff55aa;
 }
-
-.control-btn.highlight:hover {
-    background-color: #ff3399;
+.control-btn.highlight i {
+     color: white;
 }
 
-/* 工作區工具欄 */
+.control-btn.highlight:hover {
+    background-color: #e64494; /* Darker pink on hover */
+    border-color: #e64494;
+}
+
+/* Workspace Toolbar */
 .workspace-toolbar {
     height: 40px;
     background-color: #fff;
@@ -243,163 +305,315 @@ input:checked + .slider:before {
     justify-content: space-between;
     align-items: center;
     padding: 0 15px;
+    z-index: 20; /* Above canvas */
 }
 
 .tabs {
     display: flex;
+    height: 100%;
 }
 
 .tab {
     padding: 0 15px;
-    height: 40px;
+    height: 100%; /* Fill height */
     border: none;
     background: none;
     cursor: pointer;
     position: relative;
     font-size: 14px;
     color: #666;
+    display: flex; /* Align items */
+    align-items: center; /* Center vertically */
+    border-bottom: 2px solid transparent; /* Reserve space for border */
+    margin-bottom: -1px; /* Overlap border-bottom */
+    transition: color 0.2s, border-color 0.2s;
+}
+.tab:hover {
+    color: #111;
 }
 
 .tab.active {
     color: #ff55aa;
     font-weight: 500;
+    border-bottom: 2px solid #ff55aa;
 }
 
-.tab.active:after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background-color: #ff55aa;
-}
+/* Removed the ::after pseudo-element for the border */
 
 .zoom-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
+    width: 28px; /* Smaller zoom */
+    height: 28px;
+    border-radius: 4px;
     background-color: #fff;
     border: 1px solid #ccc;
     display: flex;
     justify-content: center;
     align-items: center;
     cursor: pointer;
+    color: #666;
 }
 
 .zoom-btn:hover {
     background-color: #f0f0f0;
+     border-color: #bbb;
+    color: #111;
 }
+.zoom-btn i {
+    font-size: 14px;
+}
+
 
 /* 工作區畫布 */
 .canvas {
-    flex: 1;
+    flex: 1; /* Fill remaining space */
     background-color: #f8f9fa;
     background-image:
-        linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+        linear-gradient(rgba(0, 0, 0, 0.07) 1px, transparent 1px), /* Lighter grid */
+        linear-gradient(90deg, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
     background-size: 20px 20px;
-    position: relative;
-    overflow: auto;
+    position: relative; /* Crucial for positioning nodes and lines */
+    overflow: hidden; /* Hide anything outside */
+    cursor: grab; /* Indicate grabbable background (future pan?) */
+    /* min-height: 500px; Removed, flex: 1 handles height */
+}
+.canvas:active {
+    cursor: grabbing;
 }
 
 /* 工作流節點 */
 .node-wrapper {
-    position: absolute;
-    cursor: move;
+    position: absolute; /* Position relative to canvas */
+    z-index: 10; /* Nodes above lines */
+    user-select: none;
+    min-width: 180px;
+    max-width: 250px; /* Add max width */
+    cursor: default; /* Reset cursor */
 }
 
 .node {
-    min-width: 180px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-    overflow: hidden;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px; /* Slightly more rounded */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08); /* Softer shadow */
+    position: relative; /* For potential badges etc. */
+    transition: box-shadow 0.2s, border-color 0.2s;
+    border-left: 4px solid #ccc; /* Default left border */
+    cursor: grab; /* Indicate draggable */
+}
+.node:active {
+     cursor: grabbing;
+}
+
+
+.node:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: #bbb;
 }
 
 .node-header {
-    padding: 10px;
+    padding: 8px 12px; /* Adjusted padding */
     display: flex;
     align-items: center;
     border-bottom: 1px solid #eee;
+    border-radius: 5px 5px 0 0; /* Match top corners */
+    background-color: #fcfcfc; /* Slight header background */
 }
 
+
 .node-icon {
-    width: 24px;
-    height: 24px;
+    width: 20px; /* Smaller icon */
+    height: 20px;
     display: flex;
     justify-content: center;
     align-items: center;
     border-radius: 4px;
-    margin-right: 10px;
+    margin-right: 8px;
+    color: white; /* Icon color */
+    flex-shrink: 0; /* Prevent shrinking */
+}
+.node-icon i {
+    font-size: 12px; /* Smaller icon font */
 }
 
 .node-title {
     font-weight: 500;
     font-size: 14px;
+    white-space: nowrap; /* Prevent wrapping */
+    overflow: hidden; /* Hide overflow */
+    text-overflow: ellipsis; /* Add ellipsis */
 }
 
 .node-content {
-    padding: 10px;
-    font-size: 13px;
+    padding: 10px 12px;
+    font-size: 12px; /* Smaller content font */
     color: #666;
+    min-height: 20px; /* Ensure some height */
+    line-height: 1.4;
+}
+.node-content:empty::before { /* Placeholder text */
+    content: "Node details here...";
+    color: #aaa;
+    font-style: italic;
 }
 
-/* 連接點 */
+
+/* Connection Points */
 .connection-point {
-    position: absolute;
-    width: 12px;
-    height: 12px;
-    background-color: #fff;
-    border: 2px solid #ccc;
+    width: 16px; /* Slightly larger hit area */
+    height: 16px;
     border-radius: 50%;
-    z-index: 10;
+    background-color: #f0f0f0; /* Greyish background */
+    border: 2px solid #aaa; /* Darker grey border */
+    position: absolute;
+    cursor: crosshair;
+    z-index: 11; /* Above node, below context menu */
+    transition: all 0.2s ease-in-out;
+}
+
+.connection-point:hover {
+    transform: scale(1.2); /* Grow slightly */
+    border-color: #ff55aa;
+    background-color: #fff0f7;
+}
+
+.connection-point.active { /* While dragging from this point */
+    transform: scale(1.3);
+    border-color: #ff55aa;
+    background-color: #fff0f7;
+    box-shadow: 0 0 0 4px rgba(255,85,170,0.2);
+    z-index: 12; /* Bring active point to front */
 }
 
 .connection-point.input {
+    left: -8px; /* Adjust position based on size */
     top: 50%;
-    left: -6px;
     transform: translateY(-50%);
 }
 
 .connection-point.output {
+    right: -8px; /* Adjust position based on size */
     top: 50%;
-    right: -6px;
     transform: translateY(-50%);
 }
 
-/* 連接線 */
+.connection-point.highlight { /* Potential target points */
+    border-color: #ff55aa;
+    background-color: #fff0f7;
+    animation: pulse 1.5s infinite;
+}
+
+.connection-point.highlight-snap { /* Point mouse is snapping to */
+    border-color: #ff3399; /* Brighter pink */
+    background-color: #ffebf5;
+    transform: translateY(-50%) scale(1.4); /* Adjust transform */
+    box-shadow: 0 0 0 6px rgba(255,85,170,0.3);
+    z-index: 12; /* Bring snap target to front */
+}
+
+.connection-point.connected { /* Point has a connection */
+    border-color: #4caf50;
+    background-color: #e8f5e9;
+}
+.connection-point.connected:hover { /* Keep hover effect */
+     transform: scale(1.2);
+     border-color: #388e3c; /* Darker green */
+     background-color: #dcedc8;
+}
+
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255,85,170,0.4); }
+    70% { box-shadow: 0 0 0 8px rgba(255,85,170,0); } /* Larger pulse */
+    100% { box-shadow: 0 0 0 0 rgba(255,85,170,0); }
+}
+
+/* Connection Lines */
 .connection-line {
     position: absolute;
-    pointer-events: none;
-    z-index: 5;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* SVG container doesn't block */
+    z-index: 5; /* Below nodes, above canvas background */
+    overflow: visible !important; /* Allow path to draw outside SVG bounds if needed */
 }
 
-/* 節點類型特定樣式 */
-.node[data-type="webhook"] .node-icon {
-    background-color: #ff7043;
-    color: white;
+.connection-line path {
+    stroke: #aaa; /* Lighter grey for lines */
+    stroke-width: 2;
+    fill: none;
+    transition: stroke 0.2s;
+    pointer-events: stroke; /* <<< IMPORTANT: Allow clicks ONLY on the line itself */
+    cursor: pointer; /* Indicate clickable line */
 }
 
-.node[data-type="mysql"] .node-icon {
-    background-color: #29b6f6;
-    color: white;
+.connection-line path:hover {
+    stroke: #ff55aa; /* Highlight line on hover */
+    stroke-width: 3; /* Make it thicker */
 }
 
-.node[data-type="datetime"] .node-icon {
-    background-color: #4caf50;
-    color: white;
+.connection-line.temp {
+    z-index: 15; /* Temporary line above everything except context menu */
 }
 
-/* 上下文選單 */
+.connection-line.temp path {
+    stroke: #ff55aa;
+    stroke-width: 2;
+    stroke-dasharray: 5 3; /* Dashed line style */
+    animation: dash 1s linear infinite;
+    pointer-events: none; /* Temp line not clickable */
+    cursor: default;
+}
+
+@keyframes dash {
+    to {
+        stroke-dashoffset: -8; /* Adjust based on dasharray */
+    }
+}
+
+/* Node Type Specific Styles (using data attribute and left border) */
+.node[data-type="webhook"] { border-left-color: #ff7043; }
+.node[data-type="webhook"] .node-icon { background-color: #ff7043; }
+.node[data-type="schedule"] { border-left-color: #8e44ad; } /* Purple */
+.node[data-type="schedule"] .node-icon { background-color: #8e44ad; }
+.node[data-type="manual"] { border-left-color: #3498db; } /* Blue */
+.node[data-type="manual"] .node-icon { background-color: #3498db; }
+
+
+.node[data-type="mysql"] { border-left-color: #00758f; } /* Official MySQL blue */
+.node[data-type="mysql"] .node-icon { background-color: #00758f; }
+.node[data-type="postgres"] { border-left-color: #336791; } /* Official Postgres blue */
+.node[data-type="postgres"] .node-icon { background-color: #336791; }
+.node[data-type="sqlite"] { border-left-color: #003b57; } /* SQLite blue */
+.node[data-type="sqlite"] .node-icon { background-color: #003b57; }
+
+.node[data-type="datetime"] { border-left-color: #4caf50; }
+.node[data-type="datetime"] .node-icon { background-color: #4caf50; }
+.node[data-type="function"] { border-left-color: #f39c12; } /* Orange */
+.node[data-type="function"] .node-icon { background-color: #f39c12; }
+.node[data-type="set"] { border-left-color: #1abc9c; } /* Turquoise */
+.node[data-type="set"] .node-icon { background-color: #1abc9c; }
+.node[data-type="if"] { border-left-color: #e74c3c; } /* Red */
+.node[data-type="if"] .node-icon { background-color: #e74c3c; }
+
+
+.node[data-type="email"] { border-left-color: #3498db; } /* Blue */
+.node[data-type="email"] .node-icon { background-color: #3498db; }
+.node[data-type="http"] { border-left-color: #2ecc71; } /* Emerald Green */
+.node[data-type="http"] .node-icon { background-color: #2ecc71; }
+
+
+/* Context Menu */
 .context-menu {
     position: fixed;
     background-color: white;
-    border: 1px solid #ddd;
+    border: 1px solid #ccc;
     border-radius: 4px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    z-index: 1000; /* Highest */
     display: none;
+    padding: 5px 0; /* Add vertical padding */
 }
 
 .context-menu ul {
@@ -408,62 +622,86 @@ input:checked + .slider:before {
 
 .context-menu li {
     padding: 8px 15px;
-    font-size: 14px;
+    font-size: 13px;
     cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.1s;
 }
 
 .context-menu li:hover {
     background-color: #f5f5f5;
+    color: #111;
+}
+.context-menu li[data-action="delete"]:hover {
+    background-color: #ffebee; /* Reddish background for delete */
+    color: #c62828; /* Darker red text */
 }
 
-/* 節點選擇器 */
+
+/* Node Selector */
 .node-selector {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 600px;
-    max-height: 80vh;
+    width: 650px; /* Wider */
+    max-height: 85vh;
     background-color: white;
     border-radius: 8px;
-    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.15);
-    z-index: 100;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+    z-index: 900; /* Below context menu, above overlay? */
     display: none;
-    overflow-y: auto;
+    overflow: hidden; /* Prevent overflow before content loads */
+    display: flex; /* Use flex for layout */
+    flex-direction: column;
 }
 
 .selector-header {
-    padding: 15px;
+    padding: 15px 20px;
     border-bottom: 1px solid #eee;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    flex-shrink: 0; /* Prevent header shrinking */
 }
 
 .selector-header h3 {
-    font-size: 18px;
-    font-weight: 500;
+    font-size: 16px; /* Smaller header */
+    font-weight: 600;
+    margin-right: 20px;
 }
 
 .selector-header input {
-    flex: 1;
-    margin: 0 15px;
-    padding: 8px;
+    flex-grow: 1; /* Take available space */
+    padding: 8px 12px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
+}
+.selector-header input:focus {
+    outline: none;
+    border-color: #ff55aa;
+    box-shadow: 0 0 0 2px rgba(255,85,170,0.2);
 }
 
 .selector-header .close-btn {
     background: none;
     border: none;
-    font-size: 18px;
+    font-size: 20px;
     cursor: pointer;
-    color: #888;
+    color: #aaa;
+    margin-left: 15px;
+    padding: 5px; /* Hit area */
+    line-height: 1;
+}
+.selector-header .close-btn:hover {
+    color: #555;
 }
 
+
 .node-categories {
-    padding: 15px;
+    padding: 10px 20px 20px 20px;
+    overflow-y: auto; /* Scrollable categories */
+    flex-grow: 1; /* Take remaining space */
 }
 
 .category {
@@ -471,103 +709,198 @@ input:checked + .slider:before {
 }
 
 .category h4 {
-    margin-bottom: 10px;
-    font-size: 16px;
-    font-weight: 500;
-    color: #666;
+    margin-bottom: 12px;
+    font-size: 14px; /* Smaller category title */
+    font-weight: 600;
+    color: #333;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eee;
 }
 
 .nodes-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* Responsive grid */
+    gap: 15px;
 }
 
-.nodes-grid .node {
+.node-select-item { /* Renamed from .node to avoid conflict */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 15px;
+    padding: 15px 10px;
     cursor: pointer;
     text-align: center;
-    box-shadow: none;
     border: 1px solid #eee;
+    border-radius: 6px;
     transition: all 0.2s;
+    background-color: #fff;
+    min-height: 100px; /* Ensure consistent height */
 }
 
-.nodes-grid .node:hover {
+.node-select-item:hover {
     border-color: #ff55aa;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
 }
 
-.nodes-grid .node i {
-    font-size: 24px;
-    margin-bottom: 8px;
-    color: #ff55aa;
+.node-select-item i {
+    font-size: 22px; /* Slightly smaller icon */
+    margin-bottom: 10px;
+    color: #ff55aa; /* Default icon color */
+    transition: color 0.2s;
 }
+/* Match icon color to node type */
+.node-select-item[data-type="webhook"] i { color: #ff7043; }
+.node-select-item[data-type="schedule"] i { color: #8e44ad; }
+.node-select-item[data-type="manual"] i { color: #3498db; }
+.node-select-item[data-type="mysql"] i { color: #00758f; }
+.node-select-item[data-type="postgres"] i { color: #336791; }
+.node-select-item[data-type="sqlite"] i { color: #003b57; }
+.node-select-item[data-type="datetime"] i { color: #4caf50; }
+.node-select-item[data-type="function"] i { color: #f39c12; }
+.node-select-item[data-type="set"] i { color: #1abc9c; }
+.node-select-item[data-type="if"] i { color: #e74c3c; }
+.node-select-item[data-type="email"] i { color: #3498db; }
+.node-select-item[data-type="http"] i { color: #2ecc71; }
 
-.nodes-grid .node span {
+
+.node-select-item span {
     font-size: 13px;
+    font-weight: 500;
 }
 
-/* 自定義節點樣式 */
-.trigger-node {
-    border-left: 3px solid #ff7043;
-}
 
-.database-node {
-    border-left: 3px solid #29b6f6;
-}
-
-.utility-node {
-    border-left: 3px solid #4caf50;
-}
-
-/* 節點錯誤狀態 */
+/* Node Status Styles */
 .node.error {
-    border: 1px solid #f44336;
+    border: 1px solid #f44336 !important; /* Override other borders */
+    border-left-width: 4px !important;
+    box-shadow: 0 0 8px rgba(244, 67, 54, 0.3);
 }
-
 .node.error .node-header {
     background-color: #ffebee;
 }
 
-/* 正在執行狀態 */
-.node.running .node-header {
-    background-color: #e8f5e9;
+.node.running .node-header::after { /* Simple running indicator */
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background-color: #ffeb3b; /* Yellow */
+    border-radius: 50%;
+    margin-left: 8px;
+    animation: blink 1s infinite alternate;
 }
 
-/* 成功狀態 */
-.node.success .node-header {
-    background-color: #e8f5e9;
+.node.success .node-header::after { /* Simple success indicator */
+    content: '\f00c'; /* FontAwesome check */
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    color: #4caf50; /* Green */
+    margin-left: 8px;
+    font-size: 12px;
 }
 
-/* 起始節點樣式 */
+
+@keyframes blink {
+    from { opacity: 1; }
+    to { opacity: 0.4; }
+}
+
+
+/* Start Node Style */
 .node.start-node {
-    border-left: 3px solid #ff55aa;
+    box-shadow: 0 0 0 3px rgba(255, 85, 170, 0.3); /* Pink glow */
+}
+.node.start-node .node-header {
+    /* Maybe a slightly different background or indicator? */
+     background-color: #fff8fb;
 }
 
-/* 反應式設計 */
-@media (max-width: 768px) {
-    .sidebar {
-        width: 60px;
-    }
+/* Modal Styles (for Export) */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1000; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
+}
 
-    .logo span, nav li span {
-        display: none;
-    }
+.modal-content {
+  background-color: #fefefe;
+  margin: 10% auto; /* 10% from the top and centered */
+  padding: 25px;
+  border: 1px solid #888;
+  width: 70%; /* Could be more or less, depending on screen size */
+  max-width: 800px;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  position: relative;
+}
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 18px;
+    font-weight: 600;
+}
 
-    .workflow-title span {
-        max-width: 120px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
+.close-export-modal {
+  color: #aaa;
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  font-size: 28px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.close-export-modal:hover,
+.close-export-modal:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+#export-textarea {
+    width: 100%;
+    height: 300px;
+    margin-bottom: 15px;
+    font-family: monospace;
+    font-size: 13px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 10px;
+    resize: vertical;
+}
+
+#copy-export-json {
+    padding: 8px 15px;
+    background-color: #ff55aa;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+#copy-export-json:hover {
+    background-color: #e64494;
 }
 
 
-.node, .node-header, .node-title, .node-content, .node-icon {
+/* Utility class for no-select */
+.no-select {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* Make specific elements unselectable */
+.node, .node-header, .node-title, .node-content, .node-icon, .connection-point, .sidebar, .top-toolbar, .workspace-toolbar {
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
