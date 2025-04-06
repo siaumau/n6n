@@ -220,6 +220,18 @@ document.addEventListener('DOMContentLoaded', function() {
             // Maybe it's the one from the settings modal? No, that's saveNodeSettings.
             // Need to ensure the correct button exists in index.html
         }
+
+        // Import Button (Added)
+        const importButton = document.getElementById('import-button');
+        const importFileInput = document.getElementById('import-file-input');
+        if (importButton && importFileInput) {
+            importButton.addEventListener('click', () => {
+                importFileInput.click(); // Trigger file selection
+            });
+            importFileInput.addEventListener('change', handleJsonImport);
+        } else {
+            console.warn('Import button or file input not found.');
+        }
     }
 
     // --- Node Management ---
@@ -1193,7 +1205,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (nodeData.type === 'http') {
                 const params = nodeData.parameters || {};
                 // Use jsonplaceholder as default example if no URL is set
-                nodeSettingHttpUrlInput.value = params.url || 'https://jsonplaceholder.typicode.com/posts/1';
+                nodeSettingHttpUrlInput.value = params.url || 'https://bbc.com';
                 nodeSettingHttpMethodSelect.value = params.method || 'GET';
                 nodeSettingHttpHeadersTextarea.value = params.headers ? JSON.stringify(params.headers, null, 2) : '';
                 nodeSettingHttpBodyTextarea.value = params.body || ''; // Assuming body is stored as string
@@ -1416,6 +1428,65 @@ document.addEventListener('DOMContentLoaded', function() {
              // Optional: remove element after fade out
             // setTimeout(() => feedbackEl.remove(), 300);
         }, duration);
+    }
+
+    /** Handles the file selection for JSON import */
+    function handleJsonImport(event) {
+        const file = event.target.files[0];
+        if (!file) {
+            return; // No file selected
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+
+                // Basic validation for n8n-like structure
+                if (Array.isArray(importedData.nodes) && Array.isArray(importedData.connections)) {
+                    // Check for necessary properties (can be expanded)
+                    // const hasRequiredProps = importedData.nodes.every(n => n.id && n.type && n.parameters && n.position);
+                    // if (!hasRequiredProps) throw new Error("Invalid node structure in JSON.");
+
+                    // Clear current workflow before loading
+                    workflowData.nodes = [];
+                    workflowData.connections = [];
+                    workflowData.nextNodeId = 1; // Reset ID counter, or find max ID from imported data
+                    workflowData.startNodeId = null;
+
+                    // Load imported data
+                    // Be careful with potential ID conflicts or missing data
+                    workflowData.nodes = importedData.nodes;
+                    workflowData.connections = importedData.connections;
+                    // Find the max ID to avoid collisions when adding new nodes
+                    const maxId = Math.max(0, ...importedData.nodes.map(n => n.id));
+                    workflowData.nextNodeId = maxId + 1;
+                    // Optionally, try to find start node ID if it exists in imported data
+                    workflowData.startNodeId = importedData.startNodeId || null; // Or find the first trigger node if not set
+
+                    console.log("Workflow imported successfully:", workflowData);
+                    renderWorkflow(); // Re-render the canvas
+                    showTemporaryFeedback("Workflow imported successfully!"); // i18n needed
+                } else {
+                    throw new Error("Invalid JSON structure: Missing 'nodes' or 'connections' array.");
+                }
+            } catch (error) {
+                console.error("Failed to import or parse JSON:", error);
+                alert(`Error importing file: ${error.message}`); // i18n needed
+            } finally {
+                 // Reset the file input so the same file can be selected again if needed
+                importFileInput.value = '';
+            }
+        };
+
+        reader.onerror = function(error) {
+            console.error("Error reading file:", error);
+            alert("Error reading file."); // i18n needed
+            importFileInput.value = ''; // Reset input
+        };
+
+        reader.readAsText(file);
     }
 
     // --- Start the Application ---

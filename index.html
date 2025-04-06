@@ -24,6 +24,12 @@
                     <li><i class="fas fa-question-circle"></i> Help</li>
                 </ul>
             </nav>
+             <!-- Added Import Button and hidden file input -->
+             <button id="import-button" class="control-btn import-btn">
+                <i class="fas fa-upload"></i> Import JSON
+            </button>
+            <input type="file" id="import-file-input" accept=".json" style="display: none;">
+
              <button id="export-button" class="control-btn export-btn">
                 <i class="fas fa-download"></i> Export JSON
             </button>
@@ -49,7 +55,7 @@
                         </label>
                     </div>
                     <button class="control-btn">Share</button>
-                    <button class="control-btn highlight">Save</button>
+                    <button id="save-workflow-button" class="control-btn highlight">Save</button>
                     <button class="control-btn"><i class="fas fa-history"></i></button>
                     <button class="control-btn"><i class="fas fa-ellipsis-h"></i></button>
                     <button class="control-btn">
@@ -204,7 +210,7 @@
                         <h4 data-i18n="httpRequestSettings">HTTP Request Settings</h4>
                         <div class="form-group">
                             <label for="node-setting-http-url" data-i18n="url">URL:</label>
-                            <input type="url" id="node-setting-http-url" placeholder="https://jsonplaceholder.typicode.com/posts/1">
+                            <input type="url" id="node-setting-http-url" placeholder="https://bbc.com">
                         </div>
                         <div class="form-group">
                             <label for="node-setting-http-method" data-i18n="method">Method:</label>
