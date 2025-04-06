@@ -1323,7 +1323,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
         } catch (error) {
             console.error('HTTP Request Test Failed:', error);
-            httpTestResultPre.textContent = `Request Failed:\n${error.message}\n\nCheck browser console and network tab for details. Possible CORS issue if testing external APIs.`; // i18n needed
+            let detailedErrorMessage = `Request Failed: ${error.message}`;
+
+            // Try to provide a more helpful message for CORS/Network errors
+            if (error instanceof TypeError && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
+                let targetHost = 'the target server';
+                try {
+                    // Use try-catch for URL parsing as it can fail for invalid URLs
+                    if (url) targetHost = new URL(url).hostname;
+                } catch (e) {
+                    console.warn("Could not parse URL for error message:", url, e);
+                    // Keep targetHost as the default
+                 }
+
+                detailedErrorMessage =
+`Request Failed: Could not retrieve response from ${targetHost}.\n\n` + // i18n needed
+`Error: ${error.message}\n\n` + // i18n needed
+`This usually indicates a network issue or a CORS security restriction imposed by your browser. ` +
+`The server at '${targetHost}' might not be configured to allow requests directly from your origin ('${window.location.origin || 'null'}').\n\n` + // i18n needed
+`To test the HTTP Request node functionality, please use a known public API endpoint that explicitly allows Cross-Origin requests (CORS), such as:\n` + // i18n needed
+`- https://jsonplaceholder.typicode.com/posts/1 (GET)
+` +
+`- https://httpbin.org/get (GET)
+` +
+`- https://httpbin.org/post (POST)\n\n` + // i18n needed
+`For more details, check the Network tab and Console in your browser's developer tools (F12).`; // i18n needed
+            }
+
+            httpTestResultPre.textContent = detailedErrorMessage;
             httpTestResultPre.style.color = 'red';
         }
     }
@@ -1333,4 +1360,4 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Start the Application ---
     initializeApp();
 
-}); // End DOMContentLoaded
+}); // <<< Ensure this closing brace and parenthesis for DOMContentLoaded exists and is correct
