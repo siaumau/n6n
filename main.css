@@ -1204,6 +1204,7 @@ body {
 
 .workflow-info {
     flex: 1;
+    padding: 0 20px;
 }
 
 .workflow-header {
@@ -1232,6 +1233,7 @@ body {
     border-radius: 12px;
     font-size: 12px;
     font-weight: 500;
+    margin-left: 8px;
 }
 
 .workflow-meta {
@@ -1250,6 +1252,86 @@ body {
     gap: 16px;
 }
 
+.left-actions {
+    padding-right: 10px;
+    border-right: 1px solid #eee;
+}
+
+.right-actions {
+    padding-left: 10px;
+}
+
+.status-toggle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.toggle-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #666;
+    white-space: nowrap;
+}
+
+/* 開關樣式優化 */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+    margin: 0;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+}
+
+input:checked + .slider {
+    background-color: #4CAF50;
+}
+
+input:focus + .slider {
+    box-shadow: 0 0 1px #4CAF50;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.slider.round {
+    border-radius: 24px;
+}
+
+.slider.round:before {
+    border-radius: 50%;
+}
+
 .action-btn {
     background: none;
     border: none;
@@ -1263,6 +1345,78 @@ body {
 .action-btn:hover {
     background: #f0f0f0;
     color: #333;
+}
+
+/* 下拉選單樣式 */
+.dropdown {
+    position: relative;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 5px);
+    right: 0;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+    min-width: 150px;
+    max-width: 220px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    z-index: 100;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.dropdown-menu.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-menu ul {
+    list-style: none;
+    margin: 0;
+    padding: 5px 0;
+}
+
+.dropdown-menu li {
+    padding: 10px 15px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #444;
+}
+
+.dropdown-menu li:hover {
+    background-color: #f5f5f5;
+}
+
+.dropdown-menu li i {
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
+}
+
+.dropdown-menu li.delete-action {
+    color: #e74c3c;
+}
+
+.dropdown-menu li.delete-action:hover {
+    background-color: #ffebee;
+}
+
+.dropdown-menu li.duplicate-action {
+    color: #3498db;
+}
+
+.dropdown-menu li.duplicate-action:hover {
+    background-color: #e3f2fd;
 }
 
 .create-workflow-btn {
@@ -1303,43 +1457,6 @@ body {
     outline: none;
     border-bottom: 1px solid #ff55aa;
     background-color: rgba(255, 85, 170, 0.05);
-}
-
-.action-menu {
-    position: fixed;
-    background-color: white;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
-    z-index: 1000;
-    padding: 5px 0;
-    min-width: 120px;
-    max-width: 200px;
-}
-
-.action-menu ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-.action-menu li {
-    padding: 8px 15px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.action-menu li:hover {
-    background-color: #f5f5f5;
-}
-
-.action-menu li.delete-action {
-    color: #e74c3c;
-}
-
-.action-menu li.delete-action:hover {
-    background-color: #ffebee;
 }
 
 .no-workflows {

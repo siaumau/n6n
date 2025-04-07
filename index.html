@@ -356,6 +356,15 @@
                             workflowItem.dataset.id = workflow.id;
 
                             workflowItem.innerHTML = `
+                                <div class="workflow-actions left-actions">
+                                    <div class="status-toggle">
+                                        <label class="switch">
+                                            <input type="checkbox" ${workflow.isActive ? 'checked' : ''}>
+                                            <span class="slider round"></span>
+                                        </label>
+                                        <span class="toggle-label">${workflow.isActive ? '啟用' : '停用'}</span>
+                                    </div>
+                                </div>
                                 <div class="workflow-info">
                                     <div class="workflow-header">
                                         <i class="fas fa-project-diagram"></i>
@@ -367,12 +376,16 @@
                                         <span>建立於：${workflow.createdAt}</span>
                                     </div>
                                 </div>
-                                <div class="workflow-actions">
-                                    <label class="switch">
-                                        <input type="checkbox" ${workflow.isActive ? 'checked' : ''}>
-                                        <span class="slider round"></span>
-                                    </label>
-                                    <button class="action-btn"><i class="fas fa-ellipsis-h"></i></button>
+                                <div class="workflow-actions right-actions">
+                                    <div class="dropdown">
+                                        <button class="action-btn"><i class="fas fa-ellipsis-h"></i></button>
+                                        <div class="dropdown-menu">
+                                            <ul>
+                                                <li class="duplicate-action"><i class="fas fa-copy"></i> 複製</li>
+                                                <li class="delete-action"><i class="fas fa-trash-alt"></i> 刪除</li>
+                                            </ul>
+                                        </div>
+                                    </div>
                                 </div>
                             `;
 
@@ -413,7 +426,7 @@
             document.querySelectorAll('.workflow-item').forEach(item => {
                 item.addEventListener('click', function(e) {
                     // 檢查是否點擊了開關或操作按鈕
-                    if (!e.target.closest('.switch') && !e.target.closest('.action-btn')) {
+                    if (!e.target.closest('.status-toggle') && !e.target.closest('.dropdown')) {
                         const workflowId = this.dataset.id;
                         window.location.href = `editor.html?id=${workflowId}`;
                     }
@@ -421,7 +434,7 @@
             });
 
             // 開關切換事件
-            document.querySelectorAll('.workflow-actions .switch input').forEach(switchInput => {
+            document.querySelectorAll('.status-toggle .switch input').forEach(switchInput => {
                 switchInput.addEventListener('change', function(e) {
                     e.stopPropagation(); // 阻止冒泡，避免觸發項目點擊事件
                     const isChecked = this.checked;
@@ -436,62 +449,74 @@
                     if (tagElement) {
                         tagElement.textContent = isChecked ? '啟用' : '停用';
                     }
+
+                    // 更新切換開關標籤
+                    const toggleLabel = this.closest('.status-toggle').querySelector('.toggle-label');
+                    if (toggleLabel) {
+                        toggleLabel.textContent = isChecked ? '啟用' : '停用';
+                    }
                 });
             });
 
-            // 操作按鈕點擊事件 - 顯示更多選項
+            // 操作按鈕點擊事件 - 顯示/隱藏下拉選單
             document.querySelectorAll('.workflow-actions .action-btn').forEach(button => {
                 button.addEventListener('click', function(e) {
                     e.stopPropagation(); // 阻止冒泡，避免觸發項目點擊事件
 
-                    // 移除所有已存在的操作選單
-                    document.querySelectorAll('.action-menu').forEach(menu => menu.remove());
+                    // 關閉所有其他打開的下拉選單
+                    document.querySelectorAll('.dropdown-menu.active').forEach(menu => {
+                        if (!menu.closest('.dropdown').contains(this)) {
+                            menu.classList.remove('active');
+                        }
+                    });
 
-                    // 創建並顯示操作選單
+                    // 切換當前下拉選單的顯示狀態
+                    const dropdownMenu = this.closest('.dropdown').querySelector('.dropdown-menu');
+                    dropdownMenu.classList.toggle('active');
+                });
+            });
+
+            // 刪除操作事件
+            document.querySelectorAll('.workflow-actions .delete-action').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.stopPropagation(); // 阻止冒泡
+
                     const workflowItem = this.closest('.workflow-item');
                     const workflowId = workflowItem.dataset.id;
 
-                    const menu = document.createElement('div');
-                    menu.className = 'action-menu';
-                    menu.innerHTML = `
-                        <ul>
-                            <li class="delete-action">刪除</li>
-                            <li class="duplicate-action">複製</li>
-                        </ul>
-                    `;
+                    if (confirm('確定要刪除這個工作流程嗎？此操作無法撤銷。')) {
+                        deleteWorkflow(workflowId);
+                        workflowItem.remove();
+                    }
 
-                    document.body.appendChild(menu);
-
-                    // 定位選單
-                    const rect = this.getBoundingClientRect();
-                    menu.style.position = 'absolute';
-                    menu.style.left = `${rect.left}px`;
-                    menu.style.top = `${rect.bottom}px`;
-
-                    // 刪除操作事件
-                    menu.querySelector('.delete-action').addEventListener('click', function() {
-                        if (confirm('確定要刪除這個工作流程嗎？此操作無法撤銷。')) {
-                            deleteWorkflow(workflowId);
-                            workflowItem.remove();
-                            menu.remove();
-                        }
-                    });
-
-                    // 複製操作事件
-                    menu.querySelector('.duplicate-action').addEventListener('click', function() {
-                        duplicateWorkflow(workflowId);
-                        menu.remove();
-                        loadWorkflows(); // 重新載入列表
-                    });
-
-                    // 點擊其他地方關閉選單
-                    document.addEventListener('click', function closeMenu(event) {
-                        if (!menu.contains(event.target) && !button.contains(event.target)) {
-                            menu.remove();
-                            document.removeEventListener('click', closeMenu);
-                        }
-                    });
+                    // 隱藏下拉選單
+                    this.closest('.dropdown-menu').classList.remove('active');
                 });
+            });
+
+            // 複製操作事件
+            document.querySelectorAll('.workflow-actions .duplicate-action').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.stopPropagation(); // 阻止冒泡
+
+                    const workflowItem = this.closest('.workflow-item');
+                    const workflowId = workflowItem.dataset.id;
+
+                    duplicateWorkflow(workflowId);
+                    loadWorkflows(); // 重新載入列表
+
+                    // 隱藏下拉選單
+                    this.closest('.dropdown-menu').classList.remove('active');
+                });
+            });
+
+            // 點擊其他地方關閉所有下拉選單
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.dropdown')) {
+                    document.querySelectorAll('.dropdown-menu.active').forEach(menu => {
+                        menu.classList.remove('active');
+                    });
+                }
             });
         }
 
