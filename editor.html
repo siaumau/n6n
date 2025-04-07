@@ -241,17 +241,37 @@
                         <div class="test-section function-test-section">
                             <h5 data-i18n="testFunctionTitle">Test Function</h5>
                             <div class="form-group">
-                                <label for="node-setting-function-sample-input" data-i18n="sampleInputData">Sample Input Data (JSON):</label>
+                                <div class="input-source-selector">
+                                    <label for="input-source" data-i18n="inputDataSource">輸入數據來源：</label>
+                                    <div class="radio-group">
+                                        <label>
+                                            <input type="radio" name="input-source" value="manual" checked>
+                                            <span data-i18n="manualInput">手動輸入</span>
+                                        </label>
+                                        <label>
+                                            <input type="radio" name="input-source" value="upstream">
+                                            <span data-i18n="upstreamNode">上游節點</span>
+                                        </label>
+                                    </div>
+                                    <button id="fetch-upstream-data-btn" class="btn small-btn" data-i18n="fetchUpstreamData">
+                                        <i class="fas fa-sync-alt"></i> 獲取上游數據
+                                    </button>
+                                </div>
+                                <label for="node-setting-function-sample-input" data-i18n="sampleInputData">輸入數據 (JSON):</label>
                                 <textarea id="node-setting-function-sample-input" rows="5" placeholder='{
   "message": "Hello from previous node!",
   "timestamp": 1678886400000
 }'></textarea>
+                                <div class="input-source-info" id="data-source-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>手動輸入的測試數據。在工作流程執行時，實際數據將來自上游節點。</span>
+                                </div>
                             </div>
                             <div class="form-group">
-                                <button id="test-function-node-btn" class="btn test-btn" data-i18n="runTest">Run Test</button>
+                                <button id="test-function-node-btn" class="btn test-btn" data-i18n="runTest">執行測試</button>
                             </div>
                             <div class="test-result-section">
-                                <h5 data-i18n="testResult">Test Result:</h5>
+                                <h5 data-i18n="testResult">測試結果:</h5>
                                 <pre id="function-test-result"></pre>
                             </div>
                         </div>
@@ -447,7 +467,7 @@
         }
 
         // 顯示保存成功提示
-        function showSaveMessage(message) {
+        function showSaveMessage(message, isError = false) {
             let messageEl = document.getElementById('save-message');
             if (!messageEl) {
                 messageEl = document.createElement('div');
@@ -455,8 +475,6 @@
                 messageEl.style.position = 'fixed';
                 messageEl.style.top = '20px';
                 messageEl.style.right = '20px';
-                messageEl.style.backgroundColor = '#4caf50';
-                messageEl.style.color = 'white';
                 messageEl.style.padding = '10px 20px';
                 messageEl.style.borderRadius = '4px';
                 messageEl.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
@@ -465,6 +483,8 @@
                 document.body.appendChild(messageEl);
             }
 
+            messageEl.style.backgroundColor = isError ? '#f44336' : '#4caf50';
+            messageEl.style.color = 'white';
             messageEl.textContent = message;
             messageEl.style.opacity = '1';
 
@@ -472,6 +492,48 @@
                 messageEl.style.opacity = '0';
             }, 3000);
         }
+
+        // 診斷上游節點連接問題的輔助函數
+        function diagnoseUpstreamConnectionIssue(nodeId) {
+            if (!window.workflowData) {
+                return "工作流程數據尚未載入，請先保存工作流程。";
+            }
+
+            // 檢查是否有任何連接
+            if (!window.workflowData.connections || window.workflowData.connections.length === 0) {
+                return "工作流程中沒有任何節點連接。請先連接節點。";
+            }
+
+            // 尋找指向此節點的連接
+            const incomingConnections = window.workflowData.connections.filter(conn => conn.target === nodeId);
+            if (incomingConnections.length === 0) {
+                return "該節點沒有上游節點連接。請連接一個輸入節點。";
+            }
+
+            // 檢查上游節點是否存在
+            const sourceNodeId = incomingConnections[0].source;
+            const sourceNode = window.workflowData.nodes.find(node => node.id === sourceNodeId);
+            if (!sourceNode) {
+                return `上游節點 (ID: ${sourceNodeId}) 不存在。可能已被刪除，請重新連接。`;
+            }
+
+            // 檢查上游節點類型
+            if (sourceNode.type === 'http') {
+                if (!sourceNode.parameters || !sourceNode.parameters.testResult) {
+                    return `上游 HTTP 節點 (${sourceNode.name || sourceNode.type}) 尚未執行測試。請先在 HTTP 節點中執行測試請求。`;
+                }
+            } else if (sourceNode.type === 'function') {
+                if (!sourceNode.parameters || !sourceNode.parameters.testResult) {
+                    return `上游函數節點 (${sourceNode.name || sourceNode.type}) 尚未執行測試。請先在該函數節點中執行測試。`;
+                }
+            }
+
+            return null; // 沒有發現問題
+        }
+
+        // 將診斷函數和消息顯示函數設置為全局變量，使它們可以從 main.js 訪問
+        window.diagnoseUpstreamConnectionIssue = diagnoseUpstreamConnectionIssue;
+        window.showSaveMessage = showSaveMessage;
     });
 </script>
 </body>

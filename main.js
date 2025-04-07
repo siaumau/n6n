@@ -401,6 +401,99 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
         });
+
+        // 節點設定中的輸入數據來源切換事件
+        settingsModal.addEventListener('change', function(e) {
+            if (e.target.name === 'input-source') {
+                const nodeId = parseInt(settingsModal.dataset.nodeId);
+                const sourceInfo = document.getElementById('data-source-info');
+                const fetchButton = document.getElementById('fetch-upstream-data-btn');
+
+                if (e.target.value === 'upstream') {
+                    // 切換到上游節點數據
+                    sourceInfo.classList.add('upstream');
+                    sourceInfo.querySelector('span').textContent =
+                        '從上游節點獲取的真實數據。在工作流程執行時，將使用相同的數據傳遞。';
+                    fetchButton.style.display = 'flex';
+
+                    // 自動獲取上游數據
+                    const upstreamData = getUpstreamNodeData(nodeId);
+                    if (upstreamData) {
+                        nodeSettingFunctionSampleInputTextarea.value = JSON.stringify(upstreamData, null, 2);
+                    } else {
+                        sourceInfo.querySelector('span').textContent =
+                            '無法獲取上游節點數據。請確保該節點已連接到上游節點。';
+                    }
+                } else {
+                    // 切換到手動輸入
+                    sourceInfo.classList.remove('upstream');
+                    sourceInfo.querySelector('span').textContent =
+                        '手動輸入的測試數據。在工作流程執行時，實際數據將來自上游節點。';
+                    fetchButton.style.display = 'none';
+                }
+            }
+        });
+
+        // 獲取上游數據按鈕點擊事件
+        const fetchUpstreamDataBtn = document.getElementById('fetch-upstream-data-btn');
+        if (fetchUpstreamDataBtn) {
+            fetchUpstreamDataBtn.addEventListener('click', function() {
+                const nodeId = parseInt(settingsModal.dataset.nodeId);
+
+                // 嘗試診斷連接問題 (diagnoseUpstreamConnectionIssue 函數在 editor.html 中定義)
+                if (window.diagnoseUpstreamConnectionIssue) {
+                    const diagnosisResult = window.diagnoseUpstreamConnectionIssue(nodeId);
+                    if (diagnosisResult) {
+                        // 使用 editor.html 中的 showSaveMessage 函數顯示錯誤
+                        if (window.showSaveMessage) {
+                            window.showSaveMessage(diagnosisResult, true);
+                        } else {
+                            showTemporaryFeedback(diagnosisResult);
+                        }
+
+                        // 更新 UI 提示
+                        const sourceInfo = document.getElementById('data-source-info');
+                        if (sourceInfo) {
+                            sourceInfo.querySelector('span').textContent = diagnosisResult;
+                        }
+                        return;
+                    }
+                }
+
+                // 嘗試獲取上游數據
+                const upstreamData = getUpstreamNodeData(nodeId);
+                const sourceInfo = document.getElementById('data-source-info');
+
+                if (upstreamData) {
+                    // 將上游數據顯示在輸入框中
+                    nodeSettingFunctionSampleInputTextarea.value = JSON.stringify(upstreamData, null, 2);
+
+                    // 更新提示信息
+                    if (sourceInfo) {
+                        // 檢查是否是真實數據還是模擬數據
+                        if (upstreamData.source && upstreamData.source.includes('模擬數據')) {
+                            sourceInfo.querySelector('span').textContent =
+                                '從上游節點獲取的模擬數據。上游節點沒有真實測試結果，所以使用了模擬數據。請在上游節點中執行測試以獲取真實數據。';
+                        } else {
+                            sourceInfo.querySelector('span').textContent =
+                                '成功從上游節點獲取真實測試數據。此數據反映了當前連接的節點輸出。';
+                        }
+                    }
+
+                    // 顯示成功提示
+                    showTemporaryFeedback('成功獲取上游節點數據', 1500);
+                } else {
+                    // 獲取失敗
+                    if (sourceInfo) {
+                        sourceInfo.querySelector('span').textContent =
+                            '無法獲取上游節點數據。請確保該節點已連接到上游節點，且上游節點已執行過測試。';
+                    }
+
+                    // 顯示失敗提示
+                    showTemporaryFeedback('無法獲取上游節點數據', 1500);
+                }
+            });
+        }
     }
 
     // --- Node Management ---
@@ -1420,6 +1513,20 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (nodeData.type === 'function') {
                 const params = nodeData.parameters || {};
                 nodeSettingFunctionCodeTextarea.value = params.functionCode || '';
+
+                // 檢查是否有上游節點，並獲取輸入數據
+                const inputData = getUpstreamNodeData(nodeId);
+                if (inputData) {
+                    // 設置輸入數據到樣本輸入框中
+                    nodeSettingFunctionSampleInputTextarea.value = JSON.stringify(inputData, null, 2);
+                } else {
+                    // 如果沒有上游節點數據，使用預設範例
+                    nodeSettingFunctionSampleInputTextarea.value = nodeData.parameters?.sampleInput ||
+                        JSON.stringify({
+                            message: "Hello from previous node!",
+                            timestamp: Date.now()
+                        }, null, 2);
+                }
             } else if (nodeData.type === 'if') {
                 const params = nodeData.parameters || {};
                 nodeSettingIfVariableInput.value = params.variablePath || '';
@@ -1516,101 +1623,100 @@ document.addEventListener('DOMContentLoaded', function() {
      * Executes the HTTP request based on the settings in the modal for testing.
      */
     async function testHttpRequest() {
-        // Get the original target URL from the input
+        // 獲取節點 ID 和節點數據
+        const nodeId = parseInt(settingsModal.dataset.nodeId);
+        const nodeData = findNodeData(nodeId);
+        if (!nodeData) {
+            console.error(`無法找到節點 ${nodeId}`);
+            return;
+        }
+
+        // 獲取原始目標 URL
         const originalTargetUrl = nodeSettingHttpUrlInput.value.trim();
         const method = nodeSettingHttpMethodSelect.value;
         const headersStr = nodeSettingHttpHeadersTextarea.value.trim();
         const body = nodeSettingHttpBodyTextarea.value; // Body is used as is (string)
 
-        httpTestResultPre.textContent = 'Testing request... (via proxy)'; // i18n needed
+        httpTestResultPre.textContent = '測試請求中... (via proxy)';
         httpTestResultPre.style.color = '#888';
 
         if (!originalTargetUrl) {
-            httpTestResultPre.textContent = 'Error: URL is required.'; // i18n needed
+            httpTestResultPre.textContent = '錯誤: URL 是必需的';
             httpTestResultPre.style.color = 'red';
             return;
         }
 
-        // Construct the URL for our backend proxy
-        // Assuming the backend runs on localhost:3000 during development
-        // In production, this might point to your deployed backend URL
-        const proxyBaseUrl = 'http://localhost:3000'; // <-- Make sure this matches where your backend runs
+        // 構建代理 URL
+        const proxyBaseUrl = 'http://localhost:3000';
         const proxyUrl = `${proxyBaseUrl}/proxy?targetUrl=${encodeURIComponent(originalTargetUrl)}`;
 
-        // Headers validation remains the same
+        // 驗證頭部
         let headers = {};
         try {
             if (headersStr) {
                 headers = JSON.parse(headersStr);
             }
         } catch (e) {
-            httpTestResultPre.textContent = `Error: Invalid JSON in Headers.\n${e.message}`; // i18n needed
+            httpTestResultPre.textContent = `錯誤: 頭部 JSON 無效。\n${e.message}`;
             httpTestResultPre.style.color = 'red';
             return;
         }
 
-        // --- Important Note for Proxy --- :
-        // This simple proxy currently only supports GET requests.
-        // To support other methods (POST, PUT, etc.) and sending headers/body through the proxy,
-        // the backend proxy endpoint needs to be enhanced to:
-        // 1. Accept method, headers, body parameters (e.g., via POST request to proxy).
-        // 2. Use these parameters when making the request via axios.
-        // For now, we'll proceed with a GET request to the proxy.
-
         const requestOptions = {
-             method: 'GET', // Always GET to our proxy endpoint
-             // Headers and body are NOT sent directly to the proxy in this simple setup.
-             // The backend proxy would need to be enhanced to handle them.
+            method: 'GET', // 始終向代理發送 GET 請求
         };
 
-
         try {
-             // Fetch from our proxy endpoint
+            // 從代理端點獲取
             const response = await fetch(proxyUrl, requestOptions);
 
             const result = {
                 status: response.status,
                 statusText: response.statusText,
                 headers: {},
-                // Get body as text first, as the proxy should forward it
                 body: await response.text()
             };
 
-             // Extract headers (these are headers FROM THE PROXY RESPONSE,
-             // which should ideally include relevant headers from the target)
-             response.headers.forEach((value, key) => {
-                 result.headers[key] = value;
-             });
+            // 提取頭部
+            response.headers.forEach((value, key) => {
+                result.headers[key] = value;
+            });
 
-            // Try to parse body as JSON if content-type suggests it (check proxy response header)
-             const contentType = response.headers.get('content-type');
-             if (contentType && contentType.includes('application/json') && result.body) {
-                 try {
-                     result.body = JSON.parse(result.body);
-                 } catch (e) {
-                     console.warn("Response body looked like JSON but failed to parse:", e);
-                     // Keep body as text if JSON parsing fails
-                 }
-             }
+            // 嘗試將主體解析為 JSON
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json') && result.body) {
+                try {
+                    result.body = JSON.parse(result.body);
+                } catch (e) {
+                    console.warn("響應主體看起來像 JSON，但解析失敗:", e);
+                    // 如果 JSON 解析失敗，將主體保留為文本
+                }
+            }
 
-            // Display formatted result
+            // 顯示格式化結果
             httpTestResultPre.textContent = JSON.stringify(result, null, 2);
-            httpTestResultPre.style.color = response.ok ? 'green' : 'orange'; // Color based on proxy response status
+            httpTestResultPre.style.color = response.ok ? 'green' : 'orange';
+
+            // 保存測試結果到節點數據
+            if (!nodeData.parameters) {
+                nodeData.parameters = {};
+            }
+            nodeData.parameters.testResult = result;
+            console.log("成功保存 HTTP 測試結果到節點參數:", result);
 
         } catch (error) {
-            // This catch block now catches errors fetching FROM THE PROXY
-            console.error('Proxy Request Test Failed:', error);
-             let detailedErrorMessage = `Request Failed: ${error.message}`;
+            console.error('代理請求測試失敗:', error);
+            let detailedErrorMessage = `請求失敗: ${error.message}`;
 
-             // Check if it looks like a network error connecting to the PROXY
-             if (error instanceof TypeError && (error.message.includes('Failed to fetch'))) {
-                 detailedErrorMessage =
- `Request Failed: Could not connect to the backend proxy server.\n\n` + // i18n needed
- `Error: ${error.message}\n\n` +
- `Please ensure the backend proxy server is running at '${proxyBaseUrl}'. ` + // i18n needed
- `You might need to run 'npm install' and then 'npm start' in the 'backend' directory.\n\n` + // i18n needed
- `Check the browser console (F12) and the backend server console for more details.`; // i18n needed
-             }
+            // 檢查是否看起來像連接到代理的網絡錯誤
+            if (error instanceof TypeError && (error.message.includes('Failed to fetch'))) {
+                detailedErrorMessage =
+                    `請求失敗: 無法連接到後端代理伺服器。\n\n` +
+                    `錯誤: ${error.message}\n\n` +
+                    `請確保後端代理伺服器正在 '${proxyBaseUrl}' 運行。` +
+                    `您可能需要在 'backend' 目錄中運行 'npm install' 然後 'npm start'。\n\n` +
+                    `查看瀏覽器控制台 (F12) 和後端伺服器控制台以獲取更多詳細信息。`;
+            }
 
             httpTestResultPre.textContent = detailedErrorMessage;
             httpTestResultPre.style.color = 'red';
@@ -1618,54 +1724,182 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     /**
-     * Executes the Function node's code with sample input data for testing.
+     * 獲取節點的上游輸入數據。
+     * 此函數尋找指定節點的上游節點，獲取它們的真實測試數據或生成合適的模擬數據。
+     * @param {number} nodeId - 要檢查上游節點的節點 ID。
+     * @returns {Object|null} 上游節點的輸出數據，如果沒有則返回 null。
      */
-    function testFunctionNode() {
-        const functionCode = nodeSettingFunctionCodeTextarea.value;
-        const sampleInputStr = nodeSettingFunctionSampleInputTextarea.value.trim();
+    function getUpstreamNodeData(nodeId) {
+        // 查找所有指向該節點的連接
+        const incomingConnections = workflowData.connections.filter(conn => conn.target === nodeId);
 
-        functionTestResultPre.textContent = 'Running test...'; // i18n needed
-        functionTestResultPre.style.color = '#888';
+        if (incomingConnections.length === 0) {
+            return null; // 沒有上游節點
+        }
 
-        let inputData = {}; // Default to empty object if no input
-        try {
-            if (sampleInputStr) {
-                inputData = JSON.parse(sampleInputStr);
+        // 獲取第一個上游節點（如果有多個，可以考慮合併或使用最近的一個）
+        const sourceNodeId = incomingConnections[0].source;
+        const sourceNode = findNodeData(sourceNodeId);
+
+        if (!sourceNode) {
+            return null; // 找不到上游節點
+        }
+
+        console.log(`正在從上游節點獲取數據: 類型 = ${sourceNode.type}, ID = ${sourceNodeId}`);
+
+        // 根據上游節點的類型，獲取真實數據或準備適當的模擬數據
+        let outputData = null;
+
+        switch (sourceNode.type) {
+            case 'http':
+                // 嘗試獲取 HTTP 節點的真實測試數據
+                if (sourceNode.parameters?.testResult) {
+                    try {
+                        // 如果 testResult 是 JSON 字符串，解析它
+                        if (typeof sourceNode.parameters.testResult === 'string') {
+                            outputData = JSON.parse(sourceNode.parameters.testResult);
+                        } else {
+                            // 如果已經是對象，直接使用
+                            outputData = sourceNode.parameters.testResult;
+                        }
+                        console.log("成功獲取 HTTP 節點的測試結果數據");
+                    } catch (e) {
+                        console.error("解析 HTTP 測試結果時出錯:", e);
+                        // 測試結果解析失敗，仍然提供模擬數據
+                        outputData = createMockHttpData(sourceNode);
+                    }
+                } else {
+                    // 沒有測試結果，使用模擬數據
+                    console.log("HTTP 節點沒有測試結果，使用模擬數據");
+                    outputData = createMockHttpData(sourceNode);
+                }
+                break;
+
+            case 'function':
+                // 使用函數節點的樣本輸入和測試結果
+                if (sourceNode.parameters?.testResult) {
+                    try {
+                        if (typeof sourceNode.parameters.testResult === 'string') {
+                            outputData = JSON.parse(sourceNode.parameters.testResult);
+                        } else {
+                            outputData = sourceNode.parameters.testResult;
+                        }
+                        console.log("成功獲取函數節點的測試結果數據");
+                    } catch (e) {
+                        console.error("解析函數測試結果時出錯:", e);
+                        outputData = createMockFunctionData(sourceNode);
+                    }
+                } else {
+                    console.log("函數節點沒有測試結果，使用模擬數據");
+                    outputData = createMockFunctionData(sourceNode);
+                }
+                break;
+
+            case 'webhook':
+                outputData = {
+                    method: "POST",
+                    query: { id: "123" },
+                    body: {
+                        data: "Sample webhook payload",
+                        event: "trigger",
+                        timestamp: Date.now()
+                    },
+                    headers: {
+                        "content-type": "application/json",
+                        "user-agent": "Mozilla/5.0"
+                    }
+                };
+                break;
+
+            case 'schedule':
+                outputData = {
+                    timestamp: Date.now(),
+                    scheduled: true,
+                    execution: {
+                        id: "exec_" + Date.now(),
+                        runAt: new Date().toISOString()
+                    }
+                };
+                break;
+
+            case 'manual':
+                outputData = {
+                    triggered: true,
+                    timestamp: Date.now(),
+                    triggeredBy: "user"
+                };
+                break;
+
+            default:
+                // 對於其他未特別處理的節點類型，提供通用數據
+                outputData = {
+                    nodeId: sourceNodeId,
+                    nodeName: sourceNode.name || `Node ${sourceNodeId}`,
+                    nodeType: sourceNode.type,
+                    timestamp: Date.now()
+                };
+        }
+
+        return outputData;
+    }
+
+    /**
+     * 為 HTTP 節點創建模擬響應數據
+     * @param {Object} httpNode - HTTP 節點數據
+     * @returns {Object} 模擬的 HTTP 響應數據
+     */
+    function createMockHttpData(httpNode) {
+        const url = httpNode.parameters?.url || 'https://example.com/api';
+        const method = httpNode.parameters?.method || 'GET';
+
+        return {
+            body: {
+                result: "Sample API response",
+                items: [
+                    { id: 1, name: "Item 1" },
+                    { id: 2, name: "Item 2" }
+                ],
+                success: true,
+                source: "模擬數據 - 這不是真實 API 響應"
+            },
+            headers: {
+                "content-type": "application/json",
+                "server": "nginx"
+            },
+            statusCode: 200,
+            url: url,
+            method: method
+        };
+    }
+
+    /**
+     * 為函數節點創建模擬輸出數據
+     * @param {Object} functionNode - 函數節點數據
+     * @returns {Object} 模擬的函數輸出數據
+     */
+    function createMockFunctionData(functionNode) {
+        // 嘗試使用節點的樣本輸入數據作為基礎
+        if (functionNode.parameters?.sampleInput) {
+            try {
+                const sampleData = JSON.parse(functionNode.parameters.sampleInput);
+                return {
+                    ...sampleData,
+                    processed: true,
+                    processedBy: functionNode.name || `Function ${functionNode.id}`,
+                    source: "模擬數據 - 這是基於樣本輸入的模擬輸出"
+                };
+            } catch (e) {
+                // 解析失敗，使用預設數據
             }
-        } catch (e) {
-            functionTestResultPre.textContent = `Error parsing Sample Input Data:\n${e.message}`; // i18n needed
-            functionTestResultPre.style.color = 'red';
-            return;
         }
 
-        try {
-            // --- Execute the function code ---
-            // Using an Async Function constructor allows for async/await within the node code.
-            // IMPORTANT: Executing arbitrary code like this has security implications
-            // if the code source isn't trusted. In a real application, sandboxing might be needed.
-            const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
-            const userFunction = new AsyncFunction('inputData', functionCode);
-
-            // Execute and wait for the result (could be a Promise)
-            Promise.resolve(userFunction(inputData))
-                .then(result => {
-                    // Display the returned result
-                    functionTestResultPre.textContent = JSON.stringify(result, null, 2);
-                    functionTestResultPre.style.color = 'green';
-                })
-                .catch(error => {
-                    // Display execution error
-                    console.error("Function Node Test Execution Error:", error);
-                    functionTestResultPre.textContent = `Execution Error:\n${error.message}\n\n(Check browser console for more details)`; // i18n needed
-                    functionTestResultPre.style.color = 'red';
-                });
-
-        } catch (e) {
-            // Catch syntax errors or other issues during function creation/execution
-            console.error("Function Node Test Setup Error:", e);
-            functionTestResultPre.textContent = `Error during function execution setup:\n${e.message}`; // i18n needed
-            functionTestResultPre.style.color = 'red';
-        }
+        // 預設數據
+        return {
+            processed: true,
+            message: `Data from ${functionNode.name || 'function node'}`,
+            timestamp: Date.now(),
+            source: "模擬數據 - 這不是實際處理結果"
+        };
     }
 
     // --- End Settings Modal ---
@@ -1814,5 +2048,111 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Call the function to load and render workflows on page load
     document.addEventListener('DOMContentLoaded', loadAndRenderWorkflows);
+
+    /**
+     * Loads node settings into the modal and displays it.
+     * @param {number} nodeId - The ID of the node to edit.
+     */
+    function showNodeSettingsModal(nodeId) {
+        const nodeData = findNodeData(nodeId);
+        if (!nodeData) {
+            console.error(`Node ${nodeId} not found.`);
+            return;
+        }
+
+        settingsModal.dataset.nodeId = String(nodeId);
+        // Reset all fields
+        nodeSettingNameInput.value = nodeData.name || '';
+        nodeSettingNotesInput.value = nodeData.notes || '';
+
+        // Hide all type-specific settings sections first
+        document.querySelectorAll('.type-settings').forEach(section => {
+            section.style.display = 'none';
+        });
+
+        // Set modal title to include node type
+        const titleElement = settingsModal.querySelector('h2[data-i18n="nodeSettingsTitle"]');
+        if (titleElement) {
+            titleElement.textContent = `Node Settings: ${nodeData.type.charAt(0).toUpperCase() + nodeData.type.slice(1)}`;
+        }
+
+        // Show type-specific settings based on node type
+        const specificSection = document.querySelector(`.type-settings.${nodeData.type}-settings`);
+        if (specificSection) {
+            specificSection.style.display = 'block';
+
+            // Load type-specific settings
+            if (nodeData.type === 'http') {
+                nodeSettingHttpUrlInput.value = nodeData.parameters?.url || '';
+                nodeSettingHttpMethodSelect.value = nodeData.parameters?.method || 'GET';
+                nodeSettingHttpHeadersTextarea.value = nodeData.parameters?.headers
+                    ? JSON.stringify(nodeData.parameters.headers, null, 2)
+                    : '';
+                nodeSettingHttpBodyTextarea.value = nodeData.parameters?.body || '';
+            }
+            else if (nodeData.type === 'function') {
+                nodeSettingFunctionCodeTextarea.value = nodeData.parameters?.code || '';
+
+                // 檢查是否有上游節點，並獲取輸入數據
+                const upstreamData = getUpstreamNodeData(nodeId);
+                const hasUpstreamNodes = Boolean(upstreamData);
+
+                // 設置輸入數據來源單選按鈕狀態
+                const sourceRadios = settingsModal.querySelectorAll('input[name="input-source"]');
+                const manualRadio = Array.from(sourceRadios).find(r => r.value === 'manual');
+                const upstreamRadio = Array.from(sourceRadios).find(r => r.value === 'upstream');
+
+                if (manualRadio && upstreamRadio) {
+                    // 根據是否有上游節點數據設置預設選項
+                    if (hasUpstreamNodes) {
+                        upstreamRadio.checked = true;
+                        manualRadio.checked = false;
+                    } else {
+                        manualRadio.checked = true;
+                        upstreamRadio.checked = false;
+                    }
+                }
+
+                // 設置數據來源信息顯示
+                const sourceInfo = document.getElementById('data-source-info');
+                const fetchButton = document.getElementById('fetch-upstream-data-btn');
+
+                if (sourceInfo) {
+                    if (hasUpstreamNodes && upstreamRadio.checked) {
+                        sourceInfo.classList.add('upstream');
+                        sourceInfo.querySelector('span').textContent =
+                            '從上游節點獲取的真實數據。在工作流程執行時，將使用相同的數據傳遞。';
+                        if (fetchButton) fetchButton.style.display = 'flex';
+                    } else {
+                        sourceInfo.classList.remove('upstream');
+                        sourceInfo.querySelector('span').textContent =
+                            '手動輸入的測試數據。在工作流程執行時，實際數據將來自上游節點。';
+                        if (fetchButton) fetchButton.style.display = 'none';
+                    }
+                }
+
+                // 設置輸入數據到樣本輸入框
+                if (hasUpstreamNodes && upstreamRadio.checked) {
+                    nodeSettingFunctionSampleInputTextarea.value = JSON.stringify(upstreamData, null, 2);
+                } else {
+                    // 使用保存的樣本輸入或預設範例
+                    nodeSettingFunctionSampleInputTextarea.value = nodeData.parameters?.sampleInput ||
+                        JSON.stringify({
+                            message: "Hello from previous node!",
+                            timestamp: Date.now()
+                        }, null, 2);
+                }
+            }
+            else if (nodeData.type === 'if') {
+                nodeSettingIfVariableInput.value = nodeData.parameters?.variablePath || '';
+                nodeSettingIfOperatorSelect.value = nodeData.parameters?.operator || '==';
+                nodeSettingIfValueInput.value = nodeData.parameters?.comparisonValue || '';
+            }
+            // Add more type-specific settings loading here as needed
+        }
+
+        settingsModal.style.display = 'block';
+        console.log(`Settings modal opened for node ${nodeId} of type ${nodeData.type}`);
+    }
 
 }); // <<< Ensure this closing brace and parenthesis for DOMContentLoaded exists and is correct
