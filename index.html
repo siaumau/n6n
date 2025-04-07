@@ -68,30 +68,8 @@
             </div>
 
             <!-- 工作流程列表 -->
-            <div class="workflows-list">
-                <!-- 工作流程項目範例 -->
-                <div class="workflow-item" data-id="wf_123456789">
-                    <div class="workflow-info">
-                        <div class="workflow-header">
-                            <i class="fas fa-project-diagram"></i>
-                            <h3>My workflow</h3>
-                            <span class="tag">個人</span>
-                        </div>
-                        <div class="workflow-meta">
-                            <span>最後更新：3 天前</span>
-                            <span>建立於：2024/03/22</span>
-                        </div>
-                    </div>
-                    <div class="workflow-actions">
-                        <label class="switch">
-                            <input type="checkbox">
-                            <span class="slider round"></span>
-                        </label>
-                        <button class="action-btn"><i class="fas fa-ellipsis-h"></i></button>
-                    </div>
-                </div>
-
-                <!-- 更多工作流程項目... -->
+            <div class="workflows-list" id="workflows-list">
+                <!-- 工作流程項目將由 JavaScript 動態生成 -->
             </div>
         </div>
     </div>
@@ -343,5 +321,311 @@
 
 
 <script src="main.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 從 localStorage 獲取工作流程資料
+        function loadWorkflows() {
+            const workflowsData = localStorage.getItem('myWorkflowsData');
+            const workflowsList = document.getElementById('workflows-list');
+
+            // 清空現有列表
+            workflowsList.innerHTML = '';
+
+            if (workflowsData) {
+                try {
+                    const data = JSON.parse(workflowsData);
+
+                    if (data.workflows && data.workflows.length > 0) {
+                        // 渲染每個工作流程項目
+                        data.workflows.forEach(workflow => {
+                            const updatedDate = new Date(workflow.updatedAt);
+                            const now = new Date();
+                            const diffDays = Math.floor((now - updatedDate) / (1000 * 60 * 60 * 24));
+
+                            let updatedText = '';
+                            if (diffDays === 0) {
+                                updatedText = '今天';
+                            } else if (diffDays === 1) {
+                                updatedText = '昨天';
+                            } else {
+                                updatedText = `${diffDays} 天前`;
+                            }
+
+                            const workflowItem = document.createElement('div');
+                            workflowItem.className = 'workflow-item';
+                            workflowItem.dataset.id = workflow.id;
+
+                            workflowItem.innerHTML = `
+                                <div class="workflow-info">
+                                    <div class="workflow-header">
+                                        <i class="fas fa-project-diagram"></i>
+                                        <h3>${workflow.name}</h3>
+                                        <span class="tag">${workflow.isActive ? '啟用' : '停用'}</span>
+                                    </div>
+                                    <div class="workflow-meta">
+                                        <span>最後更新：${updatedText}</span>
+                                        <span>建立於：${workflow.createdAt}</span>
+                                    </div>
+                                </div>
+                                <div class="workflow-actions">
+                                    <label class="switch">
+                                        <input type="checkbox" ${workflow.isActive ? 'checked' : ''}>
+                                        <span class="slider round"></span>
+                                    </label>
+                                    <button class="action-btn"><i class="fas fa-ellipsis-h"></i></button>
+                                </div>
+                            `;
+
+                            workflowsList.appendChild(workflowItem);
+                        });
+
+                        // 添加工作流程點擊事件
+                        bindWorkflowEvents();
+                    } else {
+                        // 沒有工作流程時顯示提示訊息
+                        workflowsList.innerHTML = `
+                            <div class="no-workflows">
+                                <p>目前還沒有工作流程。點擊右上角的「建立工作流程」按鈕開始創建。</p>
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('解析工作流程資料時發生錯誤:', error);
+                    workflowsList.innerHTML = `
+                        <div class="no-workflows">
+                            <p>載入工作流程時發生錯誤。</p>
+                        </div>
+                    `;
+                }
+            } else {
+                // 沒有資料時顯示提示訊息
+                workflowsList.innerHTML = `
+                    <div class="no-workflows">
+                        <p>目前還沒有工作流程。點擊右上角的「建立工作流程」按鈕開始創建。</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 綁定工作流程項目的事件
+        function bindWorkflowEvents() {
+            // 工作流程項目點擊事件 - 跳轉到編輯頁面
+            document.querySelectorAll('.workflow-item').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    // 檢查是否點擊了開關或操作按鈕
+                    if (!e.target.closest('.switch') && !e.target.closest('.action-btn')) {
+                        const workflowId = this.dataset.id;
+                        window.location.href = `editor.html?id=${workflowId}`;
+                    }
+                });
+            });
+
+            // 開關切換事件
+            document.querySelectorAll('.workflow-actions .switch input').forEach(switchInput => {
+                switchInput.addEventListener('change', function(e) {
+                    e.stopPropagation(); // 阻止冒泡，避免觸發項目點擊事件
+                    const isChecked = this.checked;
+                    const workflowItem = this.closest('.workflow-item');
+                    const workflowId = workflowItem.dataset.id;
+
+                    // 更新 localStorage 中的工作流程狀態
+                    updateWorkflowStatus(workflowId, isChecked);
+
+                    // 更新 UI
+                    const tagElement = workflowItem.querySelector('.tag');
+                    if (tagElement) {
+                        tagElement.textContent = isChecked ? '啟用' : '停用';
+                    }
+                });
+            });
+
+            // 操作按鈕點擊事件 - 顯示更多選項
+            document.querySelectorAll('.workflow-actions .action-btn').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.stopPropagation(); // 阻止冒泡，避免觸發項目點擊事件
+
+                    // 移除所有已存在的操作選單
+                    document.querySelectorAll('.action-menu').forEach(menu => menu.remove());
+
+                    // 創建並顯示操作選單
+                    const workflowItem = this.closest('.workflow-item');
+                    const workflowId = workflowItem.dataset.id;
+
+                    const menu = document.createElement('div');
+                    menu.className = 'action-menu';
+                    menu.innerHTML = `
+                        <ul>
+                            <li class="delete-action">刪除</li>
+                            <li class="duplicate-action">複製</li>
+                        </ul>
+                    `;
+
+                    document.body.appendChild(menu);
+
+                    // 定位選單
+                    const rect = this.getBoundingClientRect();
+                    menu.style.position = 'absolute';
+                    menu.style.left = `${rect.left}px`;
+                    menu.style.top = `${rect.bottom}px`;
+
+                    // 刪除操作事件
+                    menu.querySelector('.delete-action').addEventListener('click', function() {
+                        if (confirm('確定要刪除這個工作流程嗎？此操作無法撤銷。')) {
+                            deleteWorkflow(workflowId);
+                            workflowItem.remove();
+                            menu.remove();
+                        }
+                    });
+
+                    // 複製操作事件
+                    menu.querySelector('.duplicate-action').addEventListener('click', function() {
+                        duplicateWorkflow(workflowId);
+                        menu.remove();
+                        loadWorkflows(); // 重新載入列表
+                    });
+
+                    // 點擊其他地方關閉選單
+                    document.addEventListener('click', function closeMenu(event) {
+                        if (!menu.contains(event.target) && !button.contains(event.target)) {
+                            menu.remove();
+                            document.removeEventListener('click', closeMenu);
+                        }
+                    });
+                });
+            });
+        }
+
+        // 更新工作流程狀態
+        function updateWorkflowStatus(workflowId, isActive) {
+            const workflowsData = localStorage.getItem('myWorkflowsData');
+
+            if (workflowsData) {
+                try {
+                    const data = JSON.parse(workflowsData);
+
+                    if (data.workflows) {
+                        const workflowIndex = data.workflows.findIndex(wf => wf.id === workflowId);
+
+                        if (workflowIndex !== -1) {
+                            data.workflows[workflowIndex].isActive = isActive;
+                            data.workflows[workflowIndex].updatedAt = new Date().toISOString();
+
+                            localStorage.setItem('myWorkflowsData', JSON.stringify(data));
+                            console.log(`工作流程 ${workflowId} 狀態已更新為 ${isActive ? '啟用' : '停用'}`);
+                        }
+                    }
+                } catch (error) {
+                    console.error('更新工作流程狀態時發生錯誤:', error);
+                }
+            }
+        }
+
+        // 刪除工作流程
+        function deleteWorkflow(workflowId) {
+            const workflowsData = localStorage.getItem('myWorkflowsData');
+
+            if (workflowsData) {
+                try {
+                    const data = JSON.parse(workflowsData);
+
+                    if (data.workflows) {
+                        data.workflows = data.workflows.filter(wf => wf.id !== workflowId);
+                        localStorage.setItem('myWorkflowsData', JSON.stringify(data));
+                        console.log(`工作流程 ${workflowId} 已刪除`);
+                    }
+                } catch (error) {
+                    console.error('刪除工作流程時發生錯誤:', error);
+                }
+            }
+        }
+
+        // 複製工作流程
+        function duplicateWorkflow(workflowId) {
+            const workflowsData = localStorage.getItem('myWorkflowsData');
+
+            if (workflowsData) {
+                try {
+                    const data = JSON.parse(workflowsData);
+
+                    if (data.workflows) {
+                        const sourceWorkflow = data.workflows.find(wf => wf.id === workflowId);
+
+                        if (sourceWorkflow) {
+                            // 創建複製的工作流程
+                            const newWorkflow = JSON.parse(JSON.stringify(sourceWorkflow));
+                            newWorkflow.id = `wf_${Date.now()}`;
+                            newWorkflow.name = `${sourceWorkflow.name} (複製)`;
+                            newWorkflow.createdAt = new Date().toLocaleDateString('zh-TW');
+                            newWorkflow.updatedAt = new Date().toISOString();
+
+                            data.workflows.push(newWorkflow);
+                            data.nextWorkflowId++;
+
+                            localStorage.setItem('myWorkflowsData', JSON.stringify(data));
+                            console.log(`工作流程 ${workflowId} 已複製為 ${newWorkflow.id}`);
+                        }
+                    }
+                } catch (error) {
+                    console.error('複製工作流程時發生錯誤:', error);
+                }
+            }
+        }
+
+        // 創建工作流程按鈕事件
+        document.getElementById('create-workflow-button').addEventListener('click', function() {
+            // 跳轉到編輯頁面，不帶 ID 參數，表示創建新的工作流程
+            window.location.href = 'editor.html';
+        });
+
+        // 初始載入工作流程列表
+        loadWorkflows();
+
+        // 添加搜尋功能
+        const searchInput = document.querySelector('.search-box input');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase().trim();
+                const items = document.querySelectorAll('.workflow-item');
+
+                items.forEach(item => {
+                    const name = item.querySelector('h3').textContent.toLowerCase();
+                    if (name.includes(searchTerm)) {
+                        item.style.display = 'flex';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        // 添加排序功能
+        const sortSelect = document.querySelector('.sort-select');
+        if (sortSelect) {
+            sortSelect.addEventListener('change', function() {
+                const sortBy = this.value;
+                const workflowsList = document.getElementById('workflows-list');
+                const items = Array.from(workflowsList.querySelectorAll('.workflow-item'));
+
+                items.sort((a, b) => {
+                    if (sortBy === 'name') {
+                        const nameA = a.querySelector('h3').textContent.toLowerCase();
+                        const nameB = b.querySelector('h3').textContent.toLowerCase();
+                        return nameA.localeCompare(nameB);
+                    } else if (sortBy === 'created') {
+                        const createdA = a.querySelector('.workflow-meta span:nth-child(2)').textContent;
+                        const createdB = b.querySelector('.workflow-meta span:nth-child(2)').textContent;
+                        return createdB.localeCompare(createdA); // 降序
+                    } else {
+                        // 預設按最後更新時間排序
+                        return 0; // 維持原始順序，因為已經按更新時間排序了
+                    }
+                });
+
+                // 重新添加排序後的項目
+                items.forEach(item => workflowsList.appendChild(item));
+            });
+        }
+    });
+</script>
 </body>
 </html>
