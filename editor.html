@@ -14,7 +14,7 @@
         <div class="sidebar">
             <div class="logo">
                 <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MCA0MCI+PHBhdGggZD0iTTIwIDQwYzExLjA0NiAwIDIwLTguOTU0IDIwLTIwUzMxLjA0NiAwIDIwIDBTMCA4Ljk1NCAwIDIwczguOTU0IDIwIDIwIDIweiIgZmlsbD0iI2ZmNTVhYSIvPjxwYXRoIGQ9Ik0yMCAyNWMtMi43NjMgMC01LTIuMjM4LTUtNXMyLjIzNy01IDUtNSA1IDIuMjM4IDUgNS0yLjIzNyA1LTUgNXoiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNMzAgMTVjLTIuNzYzIDAtNS0yLjIzOC01LTVzMi4yMzctNSA1LTUgNSAyLjIzOCA1IDUtMi4yMzcgNS01IDV6IiBmaWxsPSIjZmZmIi8+PHBhdGggZD0iTTEwIDE1Yy0yLjc2MyAwLTUtMi4yMzgtNS01czIuMjM3LTUgNS01IDUgMi4yMzggNSA1LTIuMjM3IDUtNSA1eiIgZmlsbD0iI2ZmZiIvPjxwYXRoIGQ9Ik0zMCAzNWMtMi43NjMgMC01LTIuMjM4LTUtNXMyLjIzNy01IDUtNSA1IDIuMjM4IDUgNS0yLjIzNyA1LTUgNXoiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNMTAgMzVjLTIuNzYzIDAtNS0yLjIzOC01LTVzMi4yMzctNSA1LTUgNSAyLjIzOCA1IDUtMi4yMzcgNS01IDV6IiBmaWxsPSIjZmZmIi8+PC9zdmc+" alt="Logo" class="logo-img">
-                <span>N7N</span> <!-- Changed name slightly -->
+                <span>N7N</span>
             </div>
             <nav>
                 <ul>
@@ -24,13 +24,11 @@
                     <li><i class="fas fa-question-circle"></i> Help</li>
                 </ul>
             </nav>
-             <!-- Added Import Button and hidden file input -->
-             <button id="import-button" class="control-btn import-btn">
+            <button id="import-button" class="control-btn import-btn">
                 <i class="fas fa-upload"></i> Import JSON
             </button>
             <input type="file" id="import-file-input" accept=".json" style="display: none;">
-
-             <button id="export-button" class="control-btn export-btn">
+            <button id="export-button" class="control-btn export-btn">
                 <i class="fas fa-download"></i> Export JSON
             </button>
         </div>
@@ -40,28 +38,13 @@
             <!-- 頂部工具欄 (Top Toolbar) -->
             <div class="top-toolbar">
                 <div class="left-controls">
-                    <button class="add-btn"><i class="fas fa-plus"></i></button>
-                    <div class="workflow-title">
-                        <span>My workflow</span> <!-- Changed name slightly -->
-                        <button class="tag-btn">+ Add tag</button>
-                    </div>
+                    <button class="control-btn return-btn"><i class="fas fa-arrow-left"></i> 返回</button>
+                    <button class="control-btn add-node-btn"><i class="fas fa-plus"></i> 新增節點</button>
+                    <h2 class="workflow-title">新工作流程</h2>
                 </div>
                 <div class="right-controls">
-                    <div class="switch-container">
-                        <span>Inactive</span>
-                        <label class="switch">
-                            <input type="checkbox">
-                            <span class="slider round"></span>
-                        </label>
-                    </div>
-                    <button class="control-btn">Share</button>
-                    <button id="save-workflow-button" class="control-btn highlight">Save</button>
-                    <button class="control-btn"><i class="fas fa-history"></i></button>
-                    <button class="control-btn"><i class="fas fa-ellipsis-h"></i></button>
-                    <button class="control-btn">
-                        <i class="fas fa-star"></i>
-                        <span>0</span> <!-- Initial stars -->
-                    </button>
+                    <button class="control-btn highlight run-btn"><i class="fas fa-play"></i> 運行</button>
+                    <button class="control-btn save-btn"><i class="fas fa-save"></i> 保存</button>
                 </div>
             </div>
 
@@ -71,7 +54,7 @@
                     <button class="tab active">Editor</button>
                     <button class="tab">Executions</button>
                 </div>
-                <button class="zoom-btn"><i class="fas fa-search-plus"></i></button> <!-- Changed icon -->
+                <button class="zoom-btn"><i class="fas fa-search-plus"></i></button>
             </div>
 
             <!-- 工作區畫布 (Canvas) -->
@@ -329,5 +312,10 @@
 
 
 <script src="main.js"></script>
+<script>
+    document.querySelector('.return-btn').addEventListener('click', () => {
+        window.location.href = 'index.html';
+    });
+</script>
 </body>
 </html>

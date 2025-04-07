@@ -1756,4 +1756,45 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- Start the Application ---
     initializeApp();
 
+    // Function to load workflows from localStorage and render them
+    function loadAndRenderWorkflows() {
+        const storedData = localStorage.getItem('myWorkflowsData');
+        if (storedData) {
+            const myWorkflowsData = JSON.parse(storedData);
+            const workflowsList = document.querySelector('.workflows-list');
+            workflowsList.innerHTML = ''; // Clear existing items
+            myWorkflowsData.workflows.forEach(workflow => {
+                const workflowItem = document.createElement('div');
+                workflowItem.className = 'workflow-item';
+                workflowItem.dataset.id = workflow.id;
+                workflowItem.innerHTML = `
+                    <div class="workflow-info">
+                        <div class="workflow-header">
+                            <i class="fas fa-project-diagram"></i>
+                            <h3>${workflow.name}</h3>
+                            <span class="tag">${workflow.isActive ? 'Active' : 'Inactive'}</span>
+                        </div>
+                        <div class="workflow-meta">
+                            <span>最後更新：${new Date(workflow.updatedAt).toLocaleDateString()}</span>
+                            <span>建立於：${workflow.createdAt}</span>
+                        </div>
+                    </div>
+                    <div class="workflow-actions">
+                        <label class="switch">
+                            <input type="checkbox" ${workflow.isActive ? 'checked' : ''}>
+                            <span class="slider round"></span>
+                        </label>
+                        <button class="action-btn"><i class="fas fa-ellipsis-h"></i></button>
+                    </div>
+                `;
+                workflowsList.appendChild(workflowItem);
+            });
+        } else {
+            console.warn('No workflows found in localStorage.');
+        }
+    }
+
+    // Call the function to load and render workflows on page load
+    document.addEventListener('DOMContentLoaded', loadAndRenderWorkflows);
+
 }); // <<< Ensure this closing brace and parenthesis for DOMContentLoaded exists and is correct
