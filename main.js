@@ -169,13 +169,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function initUIEvents() {
         // Add Node Button
-        const addButton = document.querySelector('.add-btn');
+        const addButton = document.querySelector('.add-node-btn');
         if (addButton) {
             addButton.addEventListener('click', () => {
                 showNodeSelector(null, null, true); // Center the selector
             });
         } else {
-            console.warn('Add button (.add-btn) not found.');
+            console.warn('Add button (.add-node-btn) not found.');
         }
 
         // Close Node Selector

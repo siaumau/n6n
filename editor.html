@@ -313,8 +313,40 @@
 
 <script src="main.js"></script>
 <script>
-    document.querySelector('.return-btn').addEventListener('click', () => {
-        window.location.href = 'index.html';
+    document.addEventListener('DOMContentLoaded', function() {
+        // 返回按鈕
+        document.querySelector('.return-btn').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+
+        // 新增節點按鈕
+        document.querySelector('.add-node-btn').addEventListener('click', () => {
+            const nodeSelector = document.getElementById('node-selector');
+            if (nodeSelector) {
+                // 顯示節點選擇器，置中顯示
+                nodeSelector.style.display = 'flex';
+                nodeSelector.style.left = '50%';
+                nodeSelector.style.top = '50%';
+                nodeSelector.style.transform = 'translate(-50%, -50%)';
+
+                // 清空搜尋框
+                const searchInput = document.getElementById('node-search');
+                if (searchInput) {
+                    searchInput.value = '';
+                    searchInput.focus();
+                }
+            } else {
+                console.warn('Node selector not found!');
+            }
+        });
+
+        // 關閉節點選擇器按鈕
+        const closeBtn = document.querySelector('#node-selector .close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                document.getElementById('node-selector').style.display = 'none';
+            });
+        }
     });
 </script>
 </body>
