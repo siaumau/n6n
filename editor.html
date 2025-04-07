@@ -40,7 +40,7 @@
                 <div class="left-controls">
                     <button class="control-btn return-btn"><i class="fas fa-arrow-left"></i> 返回</button>
                     <button class="control-btn add-node-btn"><i class="fas fa-plus"></i> 新增節點</button>
-                    <h2 class="workflow-title">新工作流程</h2>
+                    <input type="text" class="workflow-title-input" placeholder="輸入工作流程名稱">
                 </div>
                 <div class="right-controls">
                     <button class="control-btn highlight run-btn"><i class="fas fa-play"></i> 運行</button>
@@ -314,6 +314,14 @@
 <script src="main.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // 獲取URL參數
+        const urlParams = new URLSearchParams(window.location.search);
+        const workflowId = urlParams.get('id') || `wf_${Date.now()}`;
+        let workflowData = null;
+
+        // 載入工作流程數據（如果存在）
+        loadWorkflow(workflowId);
+
         // 返回按鈕
         document.querySelector('.return-btn').addEventListener('click', () => {
             window.location.href = 'index.html';
@@ -346,6 +354,123 @@
             closeBtn.addEventListener('click', () => {
                 document.getElementById('node-selector').style.display = 'none';
             });
+        }
+
+        // 保存按鈕
+        document.querySelector('.save-btn').addEventListener('click', saveWorkflow);
+
+        // 運行按鈕
+        document.querySelector('.run-btn').addEventListener('click', () => {
+            showSaveMessage('工作流程執行中...');
+            // TODO: 實現工作流程的實際執行邏輯
+            setTimeout(() => {
+                showSaveMessage('工作流程執行完成！');
+            }, 2000);
+        });
+
+        // 保存工作流程
+        function saveWorkflow() {
+            // 獲取主腳本中的工作流程數據
+            const nodes = window.workflowData ? window.workflowData.nodes : [];
+            const connections = window.workflowData ? window.workflowData.connections : [];
+            const nextNodeId = window.workflowData ? window.workflowData.nextNodeId : 1;
+            const startNodeId = window.workflowData ? window.workflowData.startNodeId : null;
+
+            // 獲取工作流程標題
+            const title = document.querySelector('.workflow-title-input').value.trim() || '新工作流程';
+
+            // 創建或更新工作流程數據
+            const workflow = {
+                id: workflowId,
+                name: title,
+                createdAt: workflowData ? workflowData.createdAt : new Date().toLocaleDateString('zh-TW'),
+                updatedAt: new Date().toISOString(),
+                isActive: workflowData ? workflowData.isActive : true,
+                nodes: nodes,
+                connections: connections,
+                nextNodeId: nextNodeId,
+                startNodeId: startNodeId
+            };
+
+            // 從 localStorage 獲取現有的工作流程數據
+            let myWorkflowsData = localStorage.getItem('myWorkflowsData');
+            if (myWorkflowsData) {
+                myWorkflowsData = JSON.parse(myWorkflowsData);
+            } else {
+                myWorkflowsData = { workflows: [], nextWorkflowId: 1 };
+            }
+
+            // 查找現有工作流程或添加新的
+            const existingIndex = myWorkflowsData.workflows.findIndex(wf => wf.id === workflowId);
+            if (existingIndex >= 0) {
+                // 更新現有工作流程
+                myWorkflowsData.workflows[existingIndex] = workflow;
+            } else {
+                // 添加新工作流程
+                myWorkflowsData.workflows.push(workflow);
+                myWorkflowsData.nextWorkflowId++;
+            }
+
+            // 保存到 localStorage
+            localStorage.setItem('myWorkflowsData', JSON.stringify(myWorkflowsData));
+
+            // 顯示保存成功提示
+            showSaveMessage('工作流程已成功保存');
+        }
+
+        // 載入工作流程
+        function loadWorkflow(id) {
+            let myWorkflowsData = localStorage.getItem('myWorkflowsData');
+            if (myWorkflowsData) {
+                myWorkflowsData = JSON.parse(myWorkflowsData);
+                const workflow = myWorkflowsData.workflows.find(wf => wf.id === id);
+
+                if (workflow) {
+                    workflowData = workflow;
+
+                    // 設置標題
+                    document.querySelector('.workflow-title-input').value = workflow.name;
+
+                    // 將數據傳遞給 main.js (確保能被主腳本訪問)
+                    window.loadedWorkflowData = {
+                        nodes: workflow.nodes,
+                        connections: workflow.connections,
+                        nextNodeId: workflow.nextNodeId,
+                        startNodeId: workflow.startNodeId
+                    };
+
+                    // 觸發載入事件，讓 main.js 知道有新數據
+                    const event = new CustomEvent('workflowDataLoaded');
+                    document.dispatchEvent(event);
+                }
+            }
+        }
+
+        // 顯示保存成功提示
+        function showSaveMessage(message) {
+            let messageEl = document.getElementById('save-message');
+            if (!messageEl) {
+                messageEl = document.createElement('div');
+                messageEl.id = 'save-message';
+                messageEl.style.position = 'fixed';
+                messageEl.style.top = '20px';
+                messageEl.style.right = '20px';
+                messageEl.style.backgroundColor = '#4caf50';
+                messageEl.style.color = 'white';
+                messageEl.style.padding = '10px 20px';
+                messageEl.style.borderRadius = '4px';
+                messageEl.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+                messageEl.style.transition = 'opacity 0.3s ease';
+                messageEl.style.zIndex = '1000';
+                document.body.appendChild(messageEl);
+            }
+
+            messageEl.textContent = message;
+            messageEl.style.opacity = '1';
+
+            setTimeout(() => {
+                messageEl.style.opacity = '0';
+            }, 3000);
         }
     });
 </script>

@@ -7,6 +7,24 @@ document.addEventListener('DOMContentLoaded', function() {
         startNodeId: null // Track the designated start node
     };
 
+    // 將 workflowData 暴露給全局 window 以便在 editor.html 中能夠獲取
+    window.workflowData = workflowData;
+
+    // 處理從 localStorage 載入的工作流程資料
+    document.addEventListener('workflowDataLoaded', function() {
+        if (window.loadedWorkflowData) {
+            // 將載入的數據複製到工作流程數據中
+            workflowData.nodes = window.loadedWorkflowData.nodes || [];
+            workflowData.connections = window.loadedWorkflowData.connections || [];
+            workflowData.nextNodeId = window.loadedWorkflowData.nextNodeId || 1;
+            workflowData.startNodeId = window.loadedWorkflowData.startNodeId || null;
+
+            // 重新渲染工作流程
+            renderWorkflow();
+            console.log('已載入工作流程數據：', workflowData);
+        }
+    });
+
     // DOM Elements
     const canvas = document.getElementById('workflow-canvas');
     const contextMenu = document.getElementById('node-context-menu');
