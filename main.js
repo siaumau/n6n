@@ -297,6 +297,29 @@ document.addEventListener('DOMContentLoaded', function() {
             console.warn('Test function node button (#test-function-node-btn) not found.');
         }
 
+        // Function Node Testing Implementation
+        function testFunctionNode() {
+            try {
+                // 獲取用戶輸入的函數代碼和測試數據
+                const functionCode = nodeSettingFunctionCodeTextarea.value;
+                const sampleInput = JSON.parse(nodeSettingFunctionSampleInputTextarea.value || '{}');
+
+                // 創建一個新的函數來執行用戶的代碼
+                const userFunction = new Function('inputData', functionCode);
+
+                // 執行函數並獲取結果
+                const result = userFunction(sampleInput);
+
+                // 顯示結果
+                functionTestResultPre.innerHTML = JSON.stringify(result, null, 2);
+                functionTestResultPre.style.color = '#28a745'; // 成功時顯示綠色
+            } catch (error) {
+                // 如果有錯誤，顯示錯誤信息
+                functionTestResultPre.innerHTML = `Error: ${error.message}`;
+                functionTestResultPre.style.color = '#dc3545'; // 錯誤時顯示紅色
+            }
+        }
+
         // Hide context menu on Escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
@@ -1622,104 +1645,60 @@ document.addEventListener('DOMContentLoaded', function() {
     /**
      * Executes the HTTP request based on the settings in the modal for testing.
      */
-    async function testHttpRequest() {
-        // 獲取節點 ID 和節點數據
+     /**
+     * 測試 HTTP 請求節點
+     */
+     async function testHttpRequest() {
         const nodeId = parseInt(settingsModal.dataset.nodeId);
         const nodeData = findNodeData(nodeId);
-        if (!nodeData) {
-            console.error(`無法找到節點 ${nodeId}`);
+        
+        if (!nodeData || nodeData.type !== 'http') {
+            console.error('無效的節點數據');
             return;
         }
 
-        // 獲取原始目標 URL
-        const originalTargetUrl = nodeSettingHttpUrlInput.value.trim();
+        const url = nodeSettingHttpUrlInput.value.trim();
         const method = nodeSettingHttpMethodSelect.value;
-        const headersStr = nodeSettingHttpHeadersTextarea.value.trim();
-        const body = nodeSettingHttpBodyTextarea.value; // Body is used as is (string)
-
-        httpTestResultPre.textContent = '測試請求中... (via proxy)';
-        httpTestResultPre.style.color = '#888';
-
-        if (!originalTargetUrl) {
-            httpTestResultPre.textContent = '錯誤: URL 是必需的';
-            httpTestResultPre.style.color = 'red';
-            return;
-        }
-
-        // 構建代理 URL
-        const proxyBaseUrl = 'http://localhost:3000';
-        const proxyUrl = `${proxyBaseUrl}/proxy?targetUrl=${encodeURIComponent(originalTargetUrl)}`;
-
-        // 驗證頭部
         let headers = {};
+        let body = null;
+
         try {
-            if (headersStr) {
-                headers = JSON.parse(headersStr);
+            // 解析 headers
+            if (nodeSettingHttpHeadersTextarea.value.trim()) {
+                headers = JSON.parse(nodeSettingHttpHeadersTextarea.value);
             }
-        } catch (e) {
-            httpTestResultPre.textContent = `錯誤: 頭部 JSON 無效。\n${e.message}`;
-            httpTestResultPre.style.color = 'red';
-            return;
-        }
 
-        const requestOptions = {
-            method: 'GET', // 始終向代理發送 GET 請求
-        };
+            // 解析 body
+            if (nodeSettingHttpBodyTextarea.value.trim()) {
+                body = JSON.parse(nodeSettingHttpBodyTextarea.value);
+            }
 
-        try {
-            // 從代理端點獲取
-            const response = await fetch(proxyUrl, requestOptions);
+            httpTestResultPre.textContent = '正在測試請求...';
+            httpTestResultPre.style.color = '#888';
 
-            const result = {
-                status: response.status,
-                statusText: response.statusText,
-                headers: {},
-                body: await response.text()
-            };
-
-            // 提取頭部
-            response.headers.forEach((value, key) => {
-                result.headers[key] = value;
+            // 發送請求
+            const response = await fetch(url, {
+                method: method,
+                headers: headers,
+                body: body ? JSON.stringify(body) : null
             });
 
-            // 嘗試將主體解析為 JSON
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json') && result.body) {
-                try {
-                    result.body = JSON.parse(result.body);
-                } catch (e) {
-                    console.warn("響應主體看起來像 JSON，但解析失敗:", e);
-                    // 如果 JSON 解析失敗，將主體保留為文本
-                }
-            }
+            const responseData = await response.json();
+            
+            // 顯示結果
+            httpTestResultPre.textContent = JSON.stringify(responseData, null, 2);
+            httpTestResultPre.style.color = 'green';
 
-            // 顯示格式化結果
-            httpTestResultPre.textContent = JSON.stringify(result, null, 2);
-            httpTestResultPre.style.color = response.ok ? 'green' : 'orange';
+            // 儲存測試結果
+            if (!nodeData.parameters) nodeData.parameters = {};
+            nodeData.parameters.testResult = responseData;
 
-            // 保存測試結果到節點數據
-            if (!nodeData.parameters) {
-                nodeData.parameters = {};
-            }
-            nodeData.parameters.testResult = result;
-            console.log("成功保存 HTTP 測試結果到節點參數:", result);
+            console.log('HTTP 請求測試成功:', responseData);
 
         } catch (error) {
-            console.error('代理請求測試失敗:', error);
-            let detailedErrorMessage = `請求失敗: ${error.message}`;
-
-            // 檢查是否看起來像連接到代理的網絡錯誤
-            if (error instanceof TypeError && (error.message.includes('Failed to fetch'))) {
-                detailedErrorMessage =
-                    `請求失敗: 無法連接到後端代理伺服器。\n\n` +
-                    `錯誤: ${error.message}\n\n` +
-                    `請確保後端代理伺服器正在 '${proxyBaseUrl}' 運行。` +
-                    `您可能需要在 'backend' 目錄中運行 'npm install' 然後 'npm start'。\n\n` +
-                    `查看瀏覽器控制台 (F12) 和後端伺服器控制台以獲取更多詳細信息。`;
-            }
-
-            httpTestResultPre.textContent = detailedErrorMessage;
+            httpTestResultPre.textContent = `錯誤: ${error.message}`;
             httpTestResultPre.style.color = 'red';
+            console.error('HTTP 請求測試失敗:', error);
         }
     }
 
