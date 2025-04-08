@@ -1503,7 +1503,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Store node ID for saving later
-        settingsModal.dataset.editingNodeId = nodeId;
+        console.log('正在設置節點 ID，當前值:', nodeId, '類型:', typeof nodeId);
+        settingsModal.dataset.nodeId = String(nodeId);
+        console.log('設置後的 dataset:', settingsModal.dataset);
 
         // Clear previous test results
         httpTestResultPre.textContent = '';
@@ -1580,11 +1582,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     /** Saves the current settings from the modal to the node data */
     function saveNodeSettings() {
-        const nodeId = parseInt(settingsModal.dataset.editingNodeId);
+        const rawNodeId = settingsModal.dataset.nodeId;
+        console.log('正在保存節點設置，原始 ID:', rawNodeId, '來源:', settingsModal.dataset);
+        const nodeId = parseInt(rawNodeId);
+        console.log('解析後的節點 ID:', nodeId, '類型:', typeof nodeId);
         const nodeData = findNodeData(nodeId);
 
         if (!nodeData) {
-            console.error("Could not save settings: Node data not found.");
+            console.error("無法保存設置：找不到節點數據，ID:", nodeId, '原始 ID:', rawNodeId);
             hideNodeSettingsModal();
             return;
         }
@@ -1649,11 +1654,29 @@ document.addEventListener('DOMContentLoaded', function() {
      * 測試 HTTP 請求節點
      */
      async function testHttpRequest() {
-        const nodeId = parseInt(settingsModal.dataset.nodeId);
+        const rawNodeId = settingsModal.dataset.nodeId;
+        console.log('正在測試 HTTP 請求，原始節點 ID:', rawNodeId, '來源:', settingsModal.dataset);
+        const nodeId = parseInt(rawNodeId);
+        console.log('解析後的節點 ID:', nodeId, '類型:', typeof nodeId);
+        if (isNaN(nodeId)) {
+            console.error('無效的節點 ID，原始值:', rawNodeId);
+            httpTestResultPre.textContent = '錯誤: 無效的節點 ID';
+            httpTestResultPre.style.color = 'red';
+            return;
+        }
+
         const nodeData = findNodeData(nodeId);
-        
-        if (!nodeData || nodeData.type !== 'http') {
-            console.error('無效的節點數據');
+        if (!nodeData) {
+            console.error('找不到節點數據');
+            httpTestResultPre.textContent = '錯誤: 找不到節點數據';
+            httpTestResultPre.style.color = 'red';
+            return;
+        }
+
+        if (nodeData.type !== 'http') {
+            console.error('不是 HTTP 類型的節點');
+            httpTestResultPre.textContent = '錯誤: 不是 HTTP 類型的節點';
+            httpTestResultPre.style.color = 'red';
             return;
         }
 
@@ -1676,14 +1699,28 @@ document.addEventListener('DOMContentLoaded', function() {
             httpTestResultPre.textContent = '正在測試請求...';
             httpTestResultPre.style.color = '#888';
 
-            // 發送請求
-            const response = await fetch(url, {
+            // 通過後端代理服務發送請求
+            const proxyUrl = `http://localhost:3000/proxy?targetUrl=${encodeURIComponent(url)}`;
+            const response = await fetch(proxyUrl, {
                 method: method,
-                headers: headers,
+                headers: {
+                    ...headers,
+                    'Content-Type': 'application/json'
+                },
                 body: body ? JSON.stringify(body) : null
             });
 
-            const responseData = await response.json();
+            let responseData;
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                responseData = await response.json();
+            } else {
+                responseData = await response.text();
+            }
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status} - ${responseData}`);
+            }
             
             // 顯示結果
             httpTestResultPre.textContent = JSON.stringify(responseData, null, 2);
